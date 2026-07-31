@@ -10,6 +10,8 @@ export type OutcomeType = 'link' | 'text' | 'image' | 'file'
 
 export type ZoneKey = 'flower' | 'water' | 'exhibition' | 'woodland' | 'experiment'
 
+export type Priority = 'low' | 'medium' | 'high' | 'none'
+
 export type Zone = {
   id: ZoneKey
   defaultName: string
@@ -29,6 +31,26 @@ export type GrowthLog = {
   id: string
   text: string
   createdAt: string
+  author: 'user' | 'ai'
+  mood?: 'stuck' | 'progressing' | 'excited'
+  progressPercent?: number
+}
+
+export type Milestone = {
+  id: string
+  text: string
+  completed: boolean
+  createdAt: string
+  updatedAt?: string
+}
+
+export type AISummary = {
+  summary: string
+  obstacles: string[]
+  nextSteps: string[]
+  logHash: string
+  updatedAt: string
+  version: number
 }
 
 export type Outcome = {
@@ -43,6 +65,9 @@ export type ProjectSeed = {
   id: string
   title: string
   description: string
+  goal?: string
+  tags: string[]
+  priority: Priority
   zoneId: ZoneKey
   status: ProjectStatus
   previousStatus?: Exclude<ProjectStatus, 'dormant'>
@@ -58,18 +83,22 @@ export type ProjectSeed = {
   }
   overviewPositionManual?: boolean
   logs: GrowthLog[]
+  milestones: Milestone[]
   outcomes: Outcome[]
+  aiSummary?: AISummary
   createdAt: string
   updatedAt: string
 }
 
 export type GardenState = {
+  schemaVersion: number
   zones: Zone[]
   projects: ProjectSeed[]
   demoDataVersion?: string
 }
 
 export const DEMO_DATA_VERSION = 'demo-projects-v2-realistic-names'
+export const SCHEMA_VERSION = 3
 
 export const plantCategoryMeta: Record<PlantCategory, { label: string; tone: string }> = {
   flower: { label: '花', tone: 'rose' },
@@ -139,18 +168,25 @@ export const defaultZones: Zone[] = [
   },
 ]
 
-const storageKey = 'project-seed-bank:v2'
-const legacyStorageKey = 'project-seed-bank:v1'
+const storageKey = 'project-seed-bank:v3'
+const legacyStorageKeys = ['project-seed-bank:v2', 'project-seed-bank:v1']
 
 export function loadGardenState(): GardenState {
   const fallback: GardenState = {
+    schemaVersion: SCHEMA_VERSION,
     zones: defaultZones,
     projects: createMockProjects(),
     demoDataVersion: DEMO_DATA_VERSION,
   }
 
   try {
-    const raw = localStorage.getItem(storageKey) ?? localStorage.getItem(legacyStorageKey)
+    let raw = localStorage.getItem(storageKey)
+    if (!raw) {
+      for (const key of legacyStorageKeys) {
+        raw = localStorage.getItem(key)
+        if (raw) break
+      }
+    }
     if (!raw) {
       return fallback
     }
@@ -158,6 +194,7 @@ export function loadGardenState(): GardenState {
     const parsed = JSON.parse(raw) as Partial<GardenState> & { projects?: unknown[] }
     const shouldRefreshDemoProjects = parsed.demoDataVersion !== DEMO_DATA_VERSION
     return {
+      schemaVersion: SCHEMA_VERSION,
       zones: defaultZones.map((zone) => {
         const saved = parsed.zones?.find((item) => item.id === zone.id)
         return { ...zone, ...saved, position: zone.position, image: zone.image }
@@ -187,6 +224,9 @@ export function createProjectSeed(input: {
   plantCategory: PlantCategory
   status?: ProjectStatus
   plantVariant?: string
+  goal?: string
+  tags?: string[]
+  priority?: Priority
 }): ProjectSeed {
   const now = new Date().toISOString()
 
@@ -195,6 +235,9 @@ export function createProjectSeed(input: {
     zoneId: input.zoneId,
     title: input.title,
     description: input.description,
+    goal: input.goal,
+    tags: input.tags ?? [],
+    priority: input.priority ?? 'none',
     status: input.status ?? 'growing',
     plantCategory: input.plantCategory,
     plantVariant: input.plantVariant ?? getRandomPlantVariant(input.plantCategory),
@@ -204,6 +247,7 @@ export function createProjectSeed(input: {
     createdAt: now,
     updatedAt: now,
     logs: [],
+    milestones: [],
     outcomes: [],
   }
 }
@@ -477,6 +521,7 @@ export function createMockProjects(): ProjectSeed[] {
                 id: createId('log'),
                 text: '建立了第一版方向，先保留一个可继续观察的切入点。',
                 createdAt: project.createdAt,
+                author: 'user',
               },
             ]
           : [],
@@ -551,10 +596,19 @@ function normalizeProject(rawProject: unknown, index: number): ProjectSeed {
   }
   const now = new Date().toISOString()
 
+  const normalizedLogs: GrowthLog[] =
+    project.logs?.map((log) => ({
+      ...log,
+      author: log.author ?? 'user',
+    })) ?? []
+
   return {
     id: project.id ?? createId('seed'),
     title: project.title ?? project.name ?? 'Untitled seed',
     description: project.description ?? '',
+    goal: project.goal,
+    tags: project.tags ?? [],
+    priority: project.priority ?? 'none',
     zoneId: isZoneKey(project.zoneId) ? project.zoneId : defaultZones[index % defaultZones.length].id,
     status: normalizeStatus(project.status),
     previousStatus: normalizePreviousStatus((project as { previousStatus?: unknown }).previousStatus),
@@ -563,7 +617,8 @@ function normalizeProject(rawProject: unknown, index: number): ProjectSeed {
     position: project.position ?? createPlantPosition(),
     overviewPosition: project.overviewPosition ?? createOverviewPosition(isZoneKey(project.zoneId) ? project.zoneId : defaultZones[index % defaultZones.length].id),
     overviewPositionManual: project.overviewPositionManual ?? false,
-    logs: project.logs ?? [],
+    logs: normalizedLogs,
+    milestones: project.milestones ?? [],
     outcomes:
       project.outcomes ??
       (project.links ?? []).map((link) => ({
@@ -573,6 +628,7 @@ function normalizeProject(rawProject: unknown, index: number): ProjectSeed {
         value: link.url ?? '',
         createdAt: now,
       })),
+    aiSummary: project.aiSummary,
     createdAt: project.createdAt ?? now,
     updatedAt: project.updatedAt ?? now,
   }
@@ -586,7 +642,7 @@ function isProjectStatus(value: unknown): value is ProjectStatus {
   return statusOrder.includes(value as ProjectStatus)
 }
 
-function normalizeStatus(value: unknown): ProjectStatus {
+export function normalizeStatus(value: unknown): ProjectStatus {
   if (value === 'sprout') {
     return 'growing'
   }

@@ -65,9 +65,10 @@ type HomeViewProps = {
   onAddProject: (zoneId: ZoneKey, title: string, description: string, plantCategory: PlantCategory, plantVariant?: string) => void
   onUpdateProject: (projectId: string, patch: Partial<ProjectSeed>) => void
   onDeleteProject: (projectId: string) => void
+  onRefineSeed?: (idea: string) => void
 }
 
-export function HomeView({ zones, projects, onOpenZone, onOpenProject, onAddProject, onUpdateProject, onDeleteProject }: HomeViewProps) {
+export function HomeView({ zones, projects, onOpenZone, onOpenProject, onAddProject, onUpdateProject, onDeleteProject, onRefineSeed }: HomeViewProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedZoneId, setSelectedZoneId] = useState<ZoneKey>('flower')
   const [selectedCategory, setSelectedCategory] = useState<PlantCategory | 'all'>('all')
@@ -252,6 +253,20 @@ export function HomeView({ zones, projects, onOpenZone, onOpenProject, onAddProj
             />
             <div className="action-row">
               <button type="submit">种下项目</button>
+              {onRefineSeed && (
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => {
+                    const form = document.querySelector('.seed-modal') as HTMLFormElement | null
+                    const title = form?.querySelector<HTMLInputElement>('input[name="title"]')?.value ?? ''
+                    const description = form?.querySelector<HTMLTextAreaElement>('textarea[name="description"]')?.value ?? ''
+                    onRefineSeed(`${title} ${description}`.trim())
+                  }}
+                >
+                  和园丁聊聊
+                </button>
+              )}
               <button type="button" className="ghost-button" onClick={() => setIsModalOpen(false)}>
                 取消
               </button>

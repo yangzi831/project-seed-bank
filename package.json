@@ -7,14 +7,17 @@
     "dev": "vite",
     "build": "tsc && vite build && node scripts/create-spa-fallback.mjs",
     "preview": "vite preview",
-    "import:plants": "node scripts/import-plants.mjs"
+    "import:plants": "node scripts/import-plants.mjs",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.7.0",
+    "jsdom": "^29.1.1",
     "typescript": "~6.0.2",
-    "vite": "^6.3.6"
+    "vite": "^6.3.6",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "react": "^19.2.7",

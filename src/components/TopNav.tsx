@@ -3,9 +3,10 @@ type TopNavProps = {
   onGarden: () => void
   onList: () => void
   onBoard: () => void
+  onSettings?: () => void
 }
 
-export function TopNav({ active, onGarden, onList, onBoard }: TopNavProps) {
+export function TopNav({ active, onGarden, onList, onBoard, onSettings }: TopNavProps) {
   return (
     <header className="top-nav">
       <button className="brand-mark" type="button" onClick={onGarden}>
@@ -22,6 +23,11 @@ export function TopNav({ active, onGarden, onList, onBoard }: TopNavProps) {
           Board
         </button>
       </nav>
+      {onSettings && (
+        <button className="ghost-button" type="button" onClick={onSettings} title="AI 设置">
+          ⚙️
+        </button>
+      )}
     </header>
   )
 }

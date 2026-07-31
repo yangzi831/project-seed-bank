@@ -18,6 +18,7 @@ type ZoneViewProps = {
   onOpenProject: (projectId: string) => void
   onOpenZone: (zoneId: ZoneKey) => void
   onDeleteProject: (projectId: string) => void
+  onRefineSeed?: (idea: string) => void
 }
 
 export function ZoneView({
@@ -31,6 +32,7 @@ export function ZoneView({
   onOpenProject,
   onOpenZone,
   onDeleteProject,
+  onRefineSeed,
 }: ZoneViewProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedZoneId, setSelectedZoneId] = useState<ZoneKey>(zone.id)
@@ -186,6 +188,20 @@ export function ZoneView({
             />
             <div className="action-row">
               <button type="submit">种下项目</button>
+              {onRefineSeed && (
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => {
+                    const form = document.querySelector('.seed-modal') as HTMLFormElement | null
+                    const title = form?.querySelector<HTMLInputElement>('input[name="title"]')?.value ?? ''
+                    const description = form?.querySelector<HTMLTextAreaElement>('textarea[name="description"]')?.value ?? ''
+                    onRefineSeed(`${title} ${description}`.trim())
+                  }}
+                >
+                  和园丁聊聊
+                </button>
+              )}
               <button type="button" className="ghost-button" onClick={() => setIsModalOpen(false)}>
                 取消
               </button>

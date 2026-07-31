@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { TopNav } from './components/TopNav'
+import { AISettingsPanel } from './components/AISettingsPanel'
+import { SeedRefiner } from './components/SeedRefiner'
 import {
   createMockProjects,
   createProjectSeed,
@@ -10,6 +12,10 @@ import {
   saveGardenState,
 } from './data/garden'
 import type { GardenState, OutcomeType, PlantCategory, ProjectSeed, ProjectStatus, Zone, ZoneKey } from './data/garden'
+import { callGardener, assertRefineSeedOutput } from './services/ai/gardener'
+import { buildProjectContext } from './services/ai/context'
+import type { RefineSeedOutput, SummarizeGrowthOutput } from './services/ai/types'
+import { loadAISettings, saveAISettings } from './services/ai/settings'
 import { HomeView } from './views/HomeView'
 import { ListView } from './views/ListView'
 import { PlantLibraryView } from './views/PlantLibraryView'
@@ -27,6 +33,9 @@ export function App() {
   const [state, setState] = useState<GardenState>(() => loadGardenState())
   const [route, setRoute] = useState<Route>(() => parseRoute(getAppPathname()))
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [aiSettings, setAISettings] = useState(() => loadAISettings())
+  const [showAISettings, setShowAISettings] = useState(false)
+  const [seedRefiner, setSeedRefiner] = useState<{ open: boolean; initialIdea: string }>({ open: false, initialIdea: '' })
 
   useEffect(() => {
     const nextPath = withBasePath(routeToPath(route))
@@ -98,7 +107,7 @@ export function App() {
           ? {
               ...project,
               updatedAt: new Date().toISOString(),
-              logs: [{ id: createId('log'), createdAt: new Date().toISOString(), text: text.trim() }, ...project.logs],
+              logs: [{ id: createId('log'), createdAt: new Date().toISOString(), text: text.trim(), author: 'user' }, ...project.logs],
             }
           : project,
       ),
@@ -139,6 +148,65 @@ export function App() {
     setSelectedProjectId(null)
   }
 
+  async function refineSeed(messages: { role: 'user' | 'assistant'; content: string }[]): Promise<unknown> {
+    const context = state.projects.slice(0, 5).map((p) => `項目：${p.title}，狀態：${p.status}，區域：${p.zoneId}`).join('\n')
+    const response = await callGardener({
+      intent: 'refineSeed',
+      messages: [
+        { role: 'user', content: `現有專案參考：\n${context}\n\n` + messages[messages.length - 1].content },
+      ],
+    })
+    return assertRefineSeedOutput(response)
+  }
+
+  async function summarizeProject(projectId: string) {
+    const project = state.projects.find((p) => p.id === projectId)
+    if (!project) return
+
+    const response = await callGardener({
+      intent: 'summarizeGrowth',
+      messages: [{ role: 'user', content: buildProjectContext(project) }],
+    })
+    const summary = response as SummarizeGrowthOutput
+    updateProject(projectId, {
+      aiSummary: {
+        summary: summary.summary,
+        obstacles: summary.obstacles,
+        nextSteps: summary.nextSteps,
+        logHash: project.logs.map((l) => l.text).join(''),
+        updatedAt: new Date().toISOString(),
+        version: 1,
+      },
+    })
+  }
+
+  function applyRefinedSeed(output: RefineSeedOutput) {
+    const project = createProjectSeed({
+      zoneId: output.zoneId,
+      title: output.title,
+      description: output.description,
+      plantCategory: output.plantCategory,
+      goal: output.goal,
+      tags: output.tags,
+      priority: 'medium',
+    })
+    const milestone = output.firstMilestone
+      ? { id: createId('milestone'), text: output.firstMilestone, completed: false, createdAt: new Date().toISOString() }
+      : undefined
+
+    setState((current) => ({
+      ...current,
+      projects: [
+        {
+          ...project,
+          milestones: milestone ? [milestone] : [],
+        },
+        ...current.projects,
+      ],
+    }))
+    setSeedRefiner({ open: false, initialIdea: '' })
+  }
+
   const nav = {
     goHome: () => navigate({ name: 'home' }),
     goList: () => navigate({ name: 'list' }),
@@ -157,7 +225,7 @@ export function App() {
 
   return (
     <div className="app-shell">
-      <TopNav active={route.name} onGarden={nav.goHome} onList={nav.goList} onBoard={nav.goBoard} />
+      <TopNav active={route.name} onGarden={nav.goHome} onList={nav.goList} onBoard={nav.goBoard} onSettings={() => setShowAISettings(true)} />
       {route.name === 'home' && (
         <HomeView
           zones={state.zones}
@@ -167,6 +235,7 @@ export function App() {
           onAddProject={addProject}
           onUpdateProject={updateProject}
           onDeleteProject={deleteProject}
+          onRefineSeed={(idea) => setSeedRefiner({ open: true, initialIdea: idea })}
         />
       )}
       {route.name === 'list' && (
@@ -203,6 +272,7 @@ export function App() {
           onOpenProject={nav.goProject}
           onOpenZone={nav.goZone}
           onDeleteProject={deleteProject}
+          onRefineSeed={(idea) => setSeedRefiner({ open: true, initialIdea: idea })}
         />
       )}
       {currentProject && (
@@ -215,6 +285,25 @@ export function App() {
           onAddOutcome={addOutcome}
           onAdvance={advanceProject}
           onDeleteProject={deleteProject}
+          onAskGardener={(projectId) => summarizeProject(projectId)}
+        />
+      )}
+      {showAISettings && (
+        <AISettingsPanel
+          settings={aiSettings}
+          onChange={(settings) => {
+            setAISettings(settings)
+            saveAISettings(settings)
+          }}
+          onClose={() => setShowAISettings(false)}
+        />
+      )}
+      {seedRefiner.open && (
+        <SeedRefiner
+          initialIdea={seedRefiner.initialIdea}
+          onApply={applyRefinedSeed}
+          onCancel={() => setSeedRefiner({ open: false, initialIdea: '' })}
+          onRefine={refineSeed}
         />
       )}
     </div>
