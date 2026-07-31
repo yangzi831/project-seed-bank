@@ -102,28 +102,51 @@ Still evolving:
 - Better long-term persistence model beyond localStorage
 - AI and Agent features
 
-## Future Plan: AI Agent Direction
+## Future Plan: AI Garden Keeper Agent
 
-The next phase will explore AI as a gentle garden keeper rather than a generic chatbot.
+The next phase imagines AI not as a chatbot, but as an Agent that quietly accompanies the lifecycle of creative projects.
 
-Planned directions:
+### 🌱 Seed Discovery
 
-- **Project Seed Assistant**  
-  Turn a rough idea into a clear project seed with title, description, suggested garden, plant type, and first next steps.
+AI helps users turn vague ideas into concrete project seeds:
 
-- **Growth Log Summarizer**  
-  Summarize progress logs, detect blockers, and suggest what to record next.
+- Distill the project direction
+- Generate an initial project structure
+- Suggest early exploration paths
 
-- **Status Recommendation**  
-  Suggest whether a project should keep growing, become mature, go dormant, or be harvested.
+### 🌿 Growth Companion
 
-- **Outcome Assistant**  
-  Help transform logs and outcomes into portfolio blurbs, release notes, or showcase copy.
+AI understands the materials that appear during a project's growth:
 
-- **Weekly Garden Keeper Agent**  
-  Review the garden periodically, ask what changed, and help maintain momentum.
+- Creative logs
+- Inspiration fragments
+- Images and multimodal records
 
-- **Portfolio Harvest Agent**  
-  When a project is harvested, help package it into screenshots, story, links, and a publish-ready case study.
+It helps users:
 
-The guiding principle: AI should support reflection and cultivation, not turn the garden into another productivity dashboard.
+- Summarize stage outcomes
+- Notice how a project is changing
+- Suggest the next direction to explore
+
+### 🌳 Garden Keeper
+
+AI observes the user's project garden over time:
+
+- Which projects are actively growing
+- Which projects are temporarily dormant
+- Which ideas may be connected to each other
+
+AI does not create in place of the user. It helps users rediscover their own creative signals.
+
+### 🌸 Harvest Assistant
+
+When a project reaches a harvested state, AI helps turn the work into shareable material:
+
+- Project Story
+- Portfolio Description
+- Exhibition Introduction
+- Release Notes
+
+Seed Bank imagines AI as a creative companion rather than a replacement for creators.
+
+The AI Garden Keeper grows together with users, helping ideas evolve from seeds into mature creative projects.
