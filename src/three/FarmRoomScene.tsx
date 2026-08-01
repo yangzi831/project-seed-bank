@@ -13,7 +13,8 @@ import type { AgentBrain } from '../game/agentBrain'
 import { animatePlantNode, createPlantNode, disposePlantNode } from './PlantParticleSystem'
 import type { PlantNode, PlantSize } from './PlantParticleSystem'
 import { getDeviceTier, prefersReducedMotion, shouldForce2D } from './webgl'
-import { createAgentAvatar, createFireflies, createHouse, createPortal, createRadialTexture, createTextSprite, disposeSceneGraph } from './primitives'
+import { createDigitalGardenerAvatar } from './DigitalGardenerAvatar'
+import { createFireflies, createHouse, createPortal, createRadialTexture, createTextSprite, disposeSceneGraph } from './primitives'
 
 export type FarmRoomMode = 'overview' | 'house' | 'portal'
 
@@ -139,8 +140,9 @@ export function FarmRoomScene({ ownerName, accent, projects, isOwn, onProjectOpe
     house.group.position.set(0, 0, -(ROWS * PLOT_GAP) / 2 - 5)
     world.add(house.group)
 
-    const agent = createAgentAvatar(accent)
-    agent.group.position.set(3, 0, -(ROWS * PLOT_GAP) / 2 - 3)
+    const agent = createDigitalGardenerAvatar(accent, glowTexture)
+    agent.group.position.set(3.5, 0, -(ROWS * PLOT_GAP) / 2 - 2.8)
+    agent.group.scale.setScalar(1.08)
     world.add(agent.group)
 
     const portal = createPortal(accent, glowTexture)
@@ -418,11 +420,9 @@ export function FarmRoomScene({ ownerName, accent, projects, isOwn, onProjectOpe
       agent.group.position.lerp(agentTarget, 1 - Math.exp(-delta * 1.6))
       if (!reducedMotion) {
         agent.group.position.y = Math.abs(Math.sin(elapsed * 4)) * (agentMode === 'walk' || agentMode === 'tend' ? 0.12 : 0.03)
-        agent.group.lookAt(camera.position.x, agent.group.position.y + 1, camera.position.z)
+        agent.group.rotation.y = Math.atan2(camera.position.x - agent.group.position.x, camera.position.z - agent.group.position.z)
       }
-      agent.ringMat.opacity = 0.5 + Math.sin(elapsed * 3) * 0.18
-      agent.light.intensity = brain.isThinking() ? 4.2 : 2.4
-      agent.bodyMat.emissiveIntensity = agentMode === 'tend' ? 0.9 : 0.4
+      agent.animate(elapsed, delta, { mode: agentMode, thinking: brain.isThinking(), reducedMotion })
 
       // 传送门脉动
       portal.ringMat.opacity = 0.6 + Math.sin(elapsed * 2.4) * 0.16

@@ -1,152 +1,152 @@
-# Project Seed Bank
+# 种子银行计划
 
-Project Seed Bank is a personal project garden where ideas, side projects, learning plans, and creative prototypes are planted as digital plants and cultivated over time.
+Project 种子库是一个个人项目花园，在这里将想法、副项目、学习计划和创意原型作为数字植物种植并逐步培育。
 
-Live demo: [https://yangzi831.github.io/project-seed-bank/](https://yangzi831.github.io/project-seed-bank/)
+现场演示：[https://yangzi831.github.io/project-seed-bank/]（https://yangzi831.github.io/project-seed-bank/）
 
-## Project Idea
+## 项目创意
 
-Most project tools treat ideas as tasks, tickets, or database rows. Project Seed Bank explores a softer model: personal projects as living seeds.
+大多数项目工具将想法视为任务、工单或数据库行。Project Seed Bank 探索一种更软的模式：个人项目作为活生生的种子。
 
-Instead of asking whether an idea is finished or unfinished, the app lets a project move through a more natural rhythm:
+应用不再询问一个想法是否完成或未完成，而是让项目以更自然的节奏进行：
 
-- growing
-- mature
-- dormant
-- harvested
+- 生长
+- 成熟
+- 休眠
+- 收获
 
-The interface is built around a five-zone creative garden. Each zone carries a different kind of project energy: visual expression, reflection, exhibition, system-building, and experimentation. The goal is to make personal work feel observable, revisitable, and alive.
+界面围绕五区创意花园构建。每个区域都承载着不同的项目能量：视觉表达、反思、展览、系统建设和实验。目标是让个人作品变得可观察、可重访且充满生命力。
 
-## Core Features
+## 核心功能
 
-- **Garden Overview**  
-  A full estate map with five clickable garden zones and visible project plants.
+- **花园概览** 
+  完整的庄园地图，包含五个可点击的花园区域和可见的项目植物。
 
-- **Five Garden Zones**  
-  Each zone has its own large map, project plants, and quick navigation to other gardens.
+- **五个花园区** 
+  每个区域都有自己的大型地图、项目植物和快速导航到其他花园。
 
-- **Project Planting**  
-  Add a project with a short description, garden zone, plant category, and selected plant variant.
+- **种植计划** 
+  添加一个项目，包含简短描述、花园区域、植物类别和所选植物变种。
 
-- **Plant Library**  
-  A fixed 24-plant visual atlas with growing and mature states.
+- **植物图书馆** 
+  一个固定的24株视觉图谱，涵盖生长和成熟状态。
 
-- **Growth Dossier**  
-  Each project has a detail modal for status, plant preview, logs, outcomes, and plant replacement.
+- **生长档案** 
+  每个项目都有详细的状态、工厂预览、日志、结果和植物替换的模态。
 
-- **Growth Logs**  
-  Record progress notes over time.
+- **生长日志** 
+  记录进度记录。
 
-- **Outcomes**  
-  Save text, links, image links, or file path placeholders as project results.
+- **结果** 
+  将文本、链接、图片链接或文件路径占位符保存为项目结果。
 
-- **Growth Board**  
-  View projects by status: growing, mature, dormant, and harvested.
+- **增长委员会** 
+  按生长、成熟、休眠和收获状态查看项目。
 
-- **Local-first Demo Data**  
-  Current data is stored in browser `localStorage`; no backend or account system is required.
+- **本地优先演示数据** 
+  当前数据存储在浏览器的“localStorage”中;不需要后台或账户系统。
 
-## Screenshots
+## 截图
 
-> Screenshots will be added as the visual layout stabilizes.
+> 随着视觉布局稳定，截图将逐步添加。
 
-### Garden Overview
+### 花园概览
 
-![Garden Overview screenshot placeholder](public/images/garden/overview.png)
+![花园概览截图占位符]（公共/图片/花园/overview.png）
 
-### Garden Zone
+### 花园区
 
-_Screenshot placeholder: single Garden page with plants on the zone canvas._
+_Screenshot占位符：单个花园页面，区域内植物canvas._
 
-### Plant Library
+### 植物图书馆
 
-_Screenshot placeholder: 24-plant atlas showing mature and growing states._
+_Screenshot占位符：24株植物图鉴，显示成熟和生长中的植物图states._
 
-### Project Growth Dossier
+### 项目成长档案
 
-_Screenshot placeholder: project detail modal with plant preview, logs, and outcomes._
+_Screenshot占位符：项目详细模态，包含工厂预览、日志和 outcomes._
 
-## Technology Stack
+## 技术栈
 
 - Vite
-- React
+- 反应
 - TypeScript
-- Plain CSS
-- Browser `localStorage`
-- GitHub Pages
+- 纯CSS
+- 浏览器“localStorage”
+- GitHub页面
 - GitHub Actions
 
-The project intentionally avoids a backend, login, AI API, UI component library, WebGL, and file upload in the current demo stage.
+项目有意避免了当前演示阶段的后端、登录、AI API、UI组件库、WebGL和文件上传。
 
-## Current Status
+## 当前状态
 
-Project Seed Bank is currently a working frontend demo.
+Project Seed Bank 目前是一个正在运行的前端演示。
 
-Completed:
+已完成：
 
-- Garden overview and five garden zones
-- Real plant PNG asset library
-- Project creation, editing, deletion, and status updates
-- Plant selection and replacement
-- Project logs and outcome records
-- Drag positioning for plants on maps
-- Plants atlas page
-- Growth board
-- GitHub Pages deployment
+- 花园概览及五个花园区
+- 真实工厂PNG资产库
+- 项目创建、编辑、删除及状态更新
+- 植物选择与替代
+- 项目日志和结果记录
+- 地图上植物的阻力定位
+- 植物图谱页面
+- 增长委员会
+- GitHub Pages 部署
 
-Still evolving:
+仍在发展中：
 
-- Tablet and mobile layout polish
-- Screenshot documentation
-- More refined plant placement behavior
-- Better long-term persistence model beyond localStorage
-- AI and Agent features
+- 平板和手机布局抛光
+- 截图文档
+- 更精细的植株种植行为
+- 超越localStorage的更优长期持久化模型
+- 人工智能和代理功能
 
-## Future Plan: AI Garden Keeper Agent
+## 未来计划：AI花园管理员代理
 
-The next phase imagines AI not as a chatbot, but as an Agent that quietly accompanies the lifecycle of creative projects.
+下一阶段将人工智能想象为一个静默陪伴创意项目生命周期的代理，而非聊天机器人。
 
-### 🌱 Seed Discovery
+### 🌱 种子发现
 
-AI helps users turn vague ideas into concrete project seeds:
+人工智能帮助用户将模糊的想法转化为具体的项目种子：
 
-- Distill the project direction
-- Generate an initial project structure
-- Suggest early exploration paths
+- 提炼项目方向
+- 生成初始项目结构
+- 建议早期探索路径
 
-### 🌿 Growth Companion
+### 🌿 成长伴侣
 
-AI understands the materials that appear during a project's growth:
+人工智能理解项目发展过程中出现的材料：
 
-- Creative logs
-- Inspiration fragments
-- Images and multimodal records
+- 创意日志
+- 灵感片段
+- 图像和多模态记录
 
-It helps users:
+它帮助用户：
 
-- Summarize stage outcomes
-- Notice how a project is changing
-- Suggest the next direction to explore
+- 总结阶段结果
+- 注意项目的变化
+- 建议下一步探索方向
 
-### 🌳 Garden Keeper
+### 🌳 花园管理员
 
-AI observes the user's project garden over time:
+AI会随时间观察用户的项目花园：
 
-- Which projects are actively growing
-- Which projects are temporarily dormant
-- Which ideas may be connected to each other
+- 哪些项目正在积极发展
+- 哪些项目暂时处于休眠状态
+- 哪些思想可以相互关联
 
-AI does not create in place of the user. It helps users rediscover their own creative signals.
+人工智能不会代替用户创造。它帮助用户重新发现自己的创意信号。
 
-### 🌸 Harvest Assistant
+### 🌸 丰收助理
 
-When a project reaches a harvested state, AI helps turn the work into shareable material:
+当项目达到收获阶段时，人工智能帮助将作品转化为可分享的材料：
 
-- Project Story
-- Portfolio Description
-- Exhibition Introduction
-- Release Notes
+- 故事计划
+- 作品集简介
+- 展览介绍
+- 发行说明
 
-Seed Bank imagines AI as a creative companion rather than a replacement for creators.
+种子银行将人工智能视为创造的伙伴，而非创造者的替代品。
 
-The AI Garden Keeper grows together with users, helping ideas evolve from seeds into mature creative projects.
+AI Garden Keeper 与用户共同成长，帮助创意从种子演变成成熟的创意项目。
