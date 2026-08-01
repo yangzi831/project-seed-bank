@@ -50,3 +50,14 @@ export function summarizeGrowthPrompt(): string {
   "milestoneSuggestions": ["可以考虑新增的小里程碑1", "小里程碑2"]
 }`
 }
+
+export function generateHarvestPrompt(): string {
+  return `请把项目的成长过程整理成一份克制、真实、可用于作品集的收获说明。
+
+请输出一个 JSON 对象，包含：
+{
+  "summary": "项目介绍摘要（100字以内）",
+  "highlights": ["项目亮点1", "项目亮点2", "项目亮点3"],
+  "markdown": "可直接继续编辑的 Markdown 项目介绍"
+}`
+}
