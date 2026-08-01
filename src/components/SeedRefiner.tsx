@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import type { RefineSeedOutput } from '../services/ai/types'
+import type { AgentSeedDraft } from '../agent/types'
 
 type SeedRefinerProps = {
   initialIdea: string
-  onApply: (output: RefineSeedOutput) => void
+  onApply: (output: AgentSeedDraft) => void
   onCancel: () => void
   onRefine: (messages: { role: 'user' | 'assistant'; content: string }[]) => Promise<unknown>
 }
@@ -11,7 +11,7 @@ type SeedRefinerProps = {
 export function SeedRefiner({ initialIdea, onApply, onCancel, onRefine }: SeedRefinerProps) {
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([])
   const [input, setInput] = useState(initialIdea)
-  const [draft, setDraft] = useState<RefineSeedOutput | null>(null)
+  const [draft, setDraft] = useState<AgentSeedDraft | null>(null)
   const [loading, setLoading] = useState(false)
 
   async function handleSend() {
@@ -25,7 +25,7 @@ export function SeedRefiner({ initialIdea, onApply, onCancel, onRefine }: SeedRe
 
     try {
       const response = await onRefine(newMessages)
-      const parsed = response as RefineSeedOutput
+      const parsed = response as AgentSeedDraft
       setDraft(parsed)
       setMessages([
         ...newMessages,
