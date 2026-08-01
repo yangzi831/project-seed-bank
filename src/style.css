@@ -476,6 +476,13 @@
 .keeper-chat-message-content > small { color: rgba(204, 233, 190, 0.62); font-size: 0.66rem; }
 .keeper-chat-message-content p { margin: 0; }
 .keeper-chat-message-content ul { display: grid; gap: 0.3rem; margin: 0; padding-left: 1rem; color: rgba(235, 246, 229, 0.72); font-size: 0.76rem; }
+.keeper-seed-suggestion { display: grid; gap: 0.8rem; margin-top: 0.35rem; padding: 0.85rem; border: 1px solid rgba(178, 229, 164, 0.18); border-radius: 13px; background: linear-gradient(145deg, rgba(159, 215, 145, 0.1), rgba(111, 176, 151, 0.04)); }
+.keeper-seed-suggestion dl { display: grid; gap: 0.58rem; margin: 0; }
+.keeper-seed-suggestion dl > div { display: grid; grid-template-columns: 4.2rem 1fr; gap: 0.55rem; }
+.keeper-seed-suggestion dt { color: rgba(190, 225, 176, 0.58); font-size: 0.68rem; }
+.keeper-seed-suggestion dd { margin: 0; color: rgba(244, 250, 239, 0.9); font-size: 0.76rem; }
+.keeper-seed-suggestion button { justify-self: start; padding: 0.55rem 0.85rem; border: 1px solid rgba(184, 235, 166, 0.3); border-radius: 999px; color: #eff9e9; background: rgba(141, 202, 124, 0.15); cursor: pointer; }
+.keeper-seed-suggestion button:disabled { cursor: default; opacity: 0.62; }
 .keeper-chat-bubble.is-user { justify-self: end; }
 .keeper-chat-bubble.is-user .keeper-chat-message-content { border-color: rgba(154, 215, 186, 0.18); border-radius: 15px 15px 4px 15px; background: rgba(102, 174, 151, 0.12); }
 .keeper-chat-bubble.is-loading .keeper-chat-message-content { opacity: 0.72; animation: keeperChatThinking 1.8s ease-in-out infinite; }
