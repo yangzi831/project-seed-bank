@@ -19,9 +19,9 @@ export function AISettingsPanel({ settings, onChange, onClose }: AISettingsPanel
     <div className="modal-scrim" onClick={onClose}>
       <div className="glass-panel project-dossier" onClick={(e) => e.stopPropagation()}>
         <div className="dossier-header">
-          <h2>AI 设置</h2>
+          <h2>墓中先知设置</h2>
           <button className="dossier-close" type="button" onClick={onClose}>
-            关闭
+            合上石板
           </button>
         </div>
 
@@ -94,7 +94,7 @@ export function AISettingsPanel({ settings, onChange, onClose }: AISettingsPanel
             checked={form.enabled}
             onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
           />
-          启用数字园丁
+          唤醒墓中先知
         </label>
 
         <div className="dossier-actions">

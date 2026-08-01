@@ -1,9 +1,16 @@
-import { useMemo, useRef, useState } from 'react'
-import { CanvasStage } from '../components/CanvasStage'
-import { DraggablePlant } from '../components/DraggablePlant'
+import { useMemo, useState } from 'react'
 import { PlantPicker } from '../components/PlantPicker'
-import { getRandomPlantVariant, getZoneCounts, plantCategoryMeta, statusMeta } from '../data/garden'
-import type { OutcomeType, PlantCategory, ProjectSeed, Zone, ZoneKey } from '../data/garden'
+import { ProjectCard } from '../components/ProjectCard'
+import { getRandomPlantVariant, getZoneCounts } from '../data/garden'
+import type { PlantCategory, ProjectSeed, Zone, ZoneKey } from '../data/garden'
+
+const zoneLore: Record<ZoneKey, { numeral: string; icon: string; title: string; warning: string }> = {
+  flower: { numeral: 'I', icon: '🔥', title: '灰烬门厅', warning: '火种在这里学习第一次呼吸。' },
+  water: { numeral: 'II', icon: '🜄', title: '溺影回廊', warning: '水面会复述所有迟疑的声音。' },
+  exhibition: { numeral: 'III', icon: '🗿', title: '献祭展室', warning: '只有完成之物才敢直视石像。' },
+  woodland: { numeral: 'IV', icon: '🌑', title: '枯王林墓', warning: '根系穿过棺木，把碎片编成系统。' },
+  experiment: { numeral: 'V', icon: '⚗️', title: '炼金禁层', warning: '失败在这里不是罪名，而是配方。' },
+}
 
 type ZoneViewProps = {
   zone: Zone
@@ -12,9 +19,6 @@ type ZoneViewProps = {
   onBack: () => void
   onUpdateZone: (zoneId: ZoneKey, patch: Partial<Pick<Zone, 'displayName' | 'description'>>) => void
   onAddProject: (zoneId: ZoneKey, title: string, description: string, plantCategory: PlantCategory, plantVariant?: string) => void
-  onUpdateProject: (projectId: string, patch: Partial<ProjectSeed>) => void
-  onAddLog: (projectId: string, text: string) => void
-  onAddOutcome: (projectId: string, title: string, type: OutcomeType, value: string) => void
   onOpenProject: (projectId: string) => void
   onOpenZone: (zoneId: ZoneKey) => void
   onDeleteProject: (projectId: string) => void
@@ -28,131 +32,97 @@ export function ZoneView({
   onBack,
   onUpdateZone,
   onAddProject,
-  onUpdateProject,
   onOpenProject,
   onOpenZone,
   onDeleteProject,
   onRefineSeed,
 }: ZoneViewProps) {
+  const lore = zoneLore[zone.id]
+  const counts = getZoneCounts(projects, zone.id)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedZoneId, setSelectedZoneId] = useState<ZoneKey>(zone.id)
   const [selectedCategory, setSelectedCategory] = useState<PlantCategory | 'all'>('all')
   const [selectedVariant, setSelectedVariant] = useState<string | undefined>(() => getRandomPlantVariant('uncategorized'))
-  const canvasRef = useRef<HTMLDivElement | null>(null)
-  const counts = getZoneCounts(projects, zone.id)
-  const recentProjects = useMemo(() => [...projects].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 5), [projects])
+  const sortedProjects = useMemo(
+    () => [...projects].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+    [projects],
+  )
 
   return (
-    <main className="page workbench-page zone-page">
-      <section className="workbench-grid zone-workbench">
-        <aside className="workbench-sidebar left-sidebar">
-          <div className="glass-panel sidebar-section zone-identity">
-            <p className="eyebrow">{zone.subtitle}</p>
-            <input
-              className="zone-heading-title"
-              value={zone.displayName}
-              onChange={(event) => onUpdateZone(zone.id, { displayName: event.target.value })}
-              aria-label="Zone name"
-            />
-            <textarea
-              value={zone.description}
-              onChange={(event) => onUpdateZone(zone.id, { description: event.target.value })}
-              aria-label="Zone description"
-            />
+    <main className="page dungeon-page zone-dungeon-page">
+      <section className="dungeon-dialog zone-dossier-panel">
+        <header className="zone-dossier-header">
+          <button className="bronze-icon-button" type="button" onClick={onBack} aria-label="返回墓塔">
+            ←
+          </button>
+          <span className="zone-lore-icon" aria-hidden="true">
+            {lore.icon}
+          </span>
+          <div>
+            <p className="dungeon-kicker">FLOOR {lore.numeral} · PROJECT CHAMBER</p>
+            <h1>{lore.title}</h1>
+            <p>{lore.warning}</p>
           </div>
+        </header>
 
-          <section className="glass-panel sidebar-section">
-            <p className="eyebrow">Zone statistics</p>
-            <div className="sidebar-stats">
-              <Stat label="Total" value={counts.total} />
-              <Stat label="生长中" value={counts.growing} />
-              <Stat label="长成" value={counts.mature} />
-              <Stat label="休眠" value={counts.dormant} />
-              <Stat label="已收获" value={counts.harvested} />
-            </div>
-          </section>
+        <div className="zone-stats-grid">
+          <Stat label="封存火种" value={counts.total} />
+          <Stat label="仍在生长" value={counts.growing} />
+          <Stat label="已经长成" value={counts.mature} />
+          <Stat label="逃出循环" value={counts.harvested} success />
+        </div>
 
-          <section className="glass-panel sidebar-section">
-            <p className="eyebrow">Recent in this garden</p>
-            <div className="zone-project-list compact-list soft-list">
-              {recentProjects.length ? recentProjects.map((project) => (
-                <button key={project.id} type="button" className="zone-project-row" onClick={() => onOpenProject(project.id)}>
-                  <span>
-                    <strong>{project.title}</strong>
-                    <small>{plantCategoryMeta[project.plantCategory].label}</small>
-                  </span>
-                  <span className={`status-pill ${statusMeta[project.status].tone}`}>{statusMeta[project.status].label}</span>
-                </button>
-              )) : (
-                <p>这里还没有项目。</p>
-              )}
-            </div>
-          </section>
-        </aside>
+        <div className="dungeon-rule" />
+        <label className="engraved-field">
+          <span>墓室铭牌</span>
+          <input value={zone.displayName} onChange={(event) => onUpdateZone(zone.id, { displayName: event.target.value })} />
+        </label>
+        <label className="engraved-field">
+          <span>守墓人批注</span>
+          <textarea value={zone.description} onChange={(event) => onUpdateZone(zone.id, { description: event.target.value })} />
+        </label>
 
-        <section className="workbench-canvas zone-canvas-shell">
-          <div className="canvas-toolbar glass-panel">
-            <div className="toolbar-left-group">
-              <button type="button" className="ghost-button small" onClick={onBack}>
-                返回庄园
-              </button>
-              <div className="garden-switcher toolbar-switcher" aria-label="Garden switcher">
-                {zones.map((item) => (
-                  <button
-                    key={item.id}
-                    className={item.id === zone.id ? 'active' : ''}
-                    type="button"
-                    onClick={() => onOpenZone(item.id)}
-                  >
-                    <strong>{item.defaultName}</strong>
-                    <small>{item.subtitle}</small>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="toolbar-zone-summary">
-              <strong>{zone.defaultName}</strong>
-              <small>{zone.subtitle} · {counts.total} projects · 生长中 {counts.growing} · 长成 {counts.mature}</small>
-            </div>
-            <button
-              type="button"
-              className="primary-glass-button toolbar-primary"
-              onClick={() => {
-                setSelectedZoneId(zone.id)
-                setIsModalOpen(true)
-              }}
-            >
-              新增项目
-            </button>
+        <div className="zone-project-heading">
+          <div>
+            <small>SOUL RELICS ON THIS FLOOR</small>
+            <strong>本层灵植火种</strong>
           </div>
-          <CanvasStage ref={canvasRef} src={zone.image} className="zone-canvas main-map">
-            <div className="canvas-grid" aria-hidden="true" />
-            {projects.map((project) => (
-              <DraggablePlant
-                key={project.id}
-                project={project}
-                mode="zone"
-                position={project.position}
-                boundsRef={canvasRef}
-                clampX={[4, 96]}
-                clampY={[6, 94]}
-                label={project.title}
-                meta={statusMeta[project.status].label}
-                detailRows={[plantCategoryMeta[project.plantCategory].label, new Date(project.updatedAt).toLocaleDateString()]}
-                showLabelMode="always"
-                onOpen={onOpenProject}
-                onDelete={onDeleteProject}
-                onPositionChange={(position) => onUpdateProject(project.id, { position })}
-              />
-            ))}
-          </CanvasStage>
-        </section>
+          <button className="gold-pill compact" type="button" onClick={() => setIsModalOpen(true)}>
+            ＋ 新火种
+          </button>
+        </div>
+
+        <div className="zone-project-scroll">
+          {sortedProjects.length ? (
+            sortedProjects.map((project) => (
+              <ProjectCard key={project.id} project={project} zoneName={lore.title} compact onOpen={onOpenProject} onDelete={onDeleteProject} />
+            ))
+          ) : (
+            <div className="dungeon-empty-state">
+              <span>🕯️</span>
+              <strong>这间墓室还没有火种</strong>
+              <p>点亮第一株灵植，让它在 3D 石阶上留下光。</p>
+            </div>
+          )}
+        </div>
       </section>
+
+      <nav className="floor-rail" aria-label="切换墓塔楼层">
+        {zones.map((item) => {
+          const itemLore = zoneLore[item.id]
+          return (
+            <button key={item.id} type="button" className={item.id === zone.id ? 'active' : ''} onClick={() => onOpenZone(item.id)}>
+              <b>{itemLore.numeral}</b>
+              <span>{itemLore.icon}</span>
+              <small>{itemLore.title}</small>
+            </button>
+          )
+        })}
+      </nav>
 
       {isModalOpen && (
         <div className="modal-scrim" role="presentation" onMouseDown={() => setIsModalOpen(false)}>
           <form
-            className="glass-panel seed-modal"
+            className="dungeon-dialog seed-modal"
             onMouseDown={(event) => event.stopPropagation()}
             onSubmit={(event) => {
               event.preventDefault()
@@ -161,22 +131,15 @@ export function ZoneView({
               const title = data.get('title')?.toString().trim() ?? ''
               const description = data.get('description')?.toString().trim() ?? ''
               if (!title) return
-              onAddProject(selectedZoneId, title, description, selectedCategory === 'all' ? 'uncategorized' : selectedCategory, selectedVariant)
+              onAddProject(zone.id, title, description, selectedCategory === 'all' ? 'uncategorized' : selectedCategory, selectedVariant)
               form.reset()
               setIsModalOpen(false)
             }}
           >
-            <p className="eyebrow">Plant a growing project</p>
-            <h2>新增项目</h2>
-            <input name="title" placeholder="项目名" autoFocus />
-            <textarea name="description" placeholder="一句话描述" />
-            <select value={selectedZoneId} onChange={(event) => setSelectedZoneId(event.target.value as ZoneKey)}>
-              {zones.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.defaultName} / {item.subtitle}
-                </option>
-              ))}
-            </select>
+            <p className="dungeon-kicker">AWAKEN A RELIC ON FLOOR {lore.numeral}</p>
+            <h2>在{lore.title}点燃火种</h2>
+            <input name="title" placeholder="项目火种名" autoFocus />
+            <textarea name="description" placeholder="它为何值得从古墓里醒来？" />
             <PlantPicker
               category={selectedCategory}
               selectedVariant={selectedVariant}
@@ -187,22 +150,24 @@ export function ZoneView({
               onSelectVariant={setSelectedVariant}
             />
             <div className="action-row">
-              <button type="submit">种下项目</button>
+              <button className="gold-pill" type="submit">
+                🔥 点燃
+              </button>
               {onRefineSeed && (
                 <button
+                  className="bronze-button"
                   type="button"
-                  className="ghost-button"
-                  onClick={() => {
-                    const form = document.querySelector('.seed-modal') as HTMLFormElement | null
+                  onClick={(event) => {
+                    const form = event.currentTarget.form
                     const title = form?.querySelector<HTMLInputElement>('input[name="title"]')?.value ?? ''
                     const description = form?.querySelector<HTMLTextAreaElement>('textarea[name="description"]')?.value ?? ''
                     onRefineSeed(`${title} ${description}`.trim())
                   }}
                 >
-                  和园丁聊聊
+                  🔮 请先知精炼
                 </button>
               )}
-              <button type="button" className="ghost-button" onClick={() => setIsModalOpen(false)}>
+              <button className="ghost-button" type="button" onClick={() => setIsModalOpen(false)}>
                 取消
               </button>
             </div>
@@ -213,9 +178,9 @@ export function ZoneView({
   )
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value, success = false }: { label: string; value: number; success?: boolean }) {
   return (
-    <span className="stat-pill">
+    <span className={success ? 'is-success' : ''}>
       <small>{label}</small>
       <strong>{value}</strong>
     </span>

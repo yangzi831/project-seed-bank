@@ -1,21 +1,26 @@
-import { useEffect, useMemo, useState } from 'react'
-import { TopNav } from './components/TopNav'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AISettingsPanel } from './components/AISettingsPanel'
+import { DungeonHUD } from './components/DungeonHUD'
 import { SeedRefiner } from './components/SeedRefiner'
+import { TopNav } from './components/TopNav'
 import {
+  createId,
   createMockProjects,
   createProjectSeed,
-  createId,
   DEMO_DATA_VERSION,
   growthAdvanceOrder,
   loadGardenState,
   saveGardenState,
 } from './data/garden'
 import type { GardenState, OutcomeType, PlantCategory, ProjectSeed, ProjectStatus, Zone, ZoneKey } from './data/garden'
-import { callGardener, assertRefineSeedOutput } from './services/ai/gardener'
+import { createInitialDungeonGame, resolveDungeonTurn, rollDungeonDice, startDungeonGame } from './game/dungeon'
+import type { FateEvent } from './game/dungeon'
 import { buildProjectContext } from './services/ai/context'
-import type { RefineSeedOutput, SummarizeGrowthOutput } from './services/ai/types'
+import { assertRefineSeedOutput, callGardener } from './services/ai/gardener'
 import { loadAISettings, saveAISettings } from './services/ai/settings'
+import type { RefineSeedOutput, SummarizeGrowthOutput } from './services/ai/types'
+import { DungeonBoardScene } from './three/DungeonBoardScene'
+import type { DungeonSceneMode } from './three/DungeonBoardScene'
 import { HomeView } from './views/HomeView'
 import { ListView } from './views/ListView'
 import { PlantLibraryView } from './views/PlantLibraryView'
@@ -37,6 +42,18 @@ export function App() {
   const [showAISettings, setShowAISettings] = useState(false)
   const [seedRefiner, setSeedRefiner] = useState<{ open: boolean; initialIdea: string }>({ open: false, initialIdea: '' })
 
+  const [game, setGame] = useState(() => createInitialDungeonGame())
+  const gameRef = useRef(game)
+  const [rolling, setRolling] = useState(false)
+  const [dice, setDice] = useState<[number, number] | null>(null)
+  const [fate, setFate] = useState<FateEvent | null>(null)
+  const [dangerFlash, setDangerFlash] = useState(false)
+  const [screenShake, setScreenShake] = useState(false)
+  const [devilEnraged, setDevilEnraged] = useState(false)
+  const [sceneReady, setSceneReady] = useState(false)
+  const effectSequence = useRef(0)
+  const effectTimers = useRef<number[]>([])
+
   useEffect(() => {
     const nextPath = withBasePath(routeToPath(route))
     if (window.location.pathname !== nextPath) {
@@ -52,6 +69,17 @@ export function App() {
     saveGardenState(state)
   }, [state])
 
+  useEffect(() => {
+    gameRef.current = game
+  }, [game])
+
+  useEffect(() => {
+    return () => {
+      effectTimers.current.forEach((timer) => window.clearTimeout(timer))
+      effectTimers.current = []
+    }
+  }, [])
+
   const currentZone = useMemo(() => {
     if (route.name !== 'zone') return undefined
     return state.zones.find((zone) => zone.id === route.zoneId)
@@ -61,6 +89,9 @@ export function App() {
     if (!selectedProjectId) return undefined
     return state.projects.find((project) => project.id === selectedProjectId)
   }, [selectedProjectId, state.projects])
+
+  const sceneMode: DungeonSceneMode = route.name === 'board' ? 'board' : route.name === 'list' || route.name === 'plantLibrary' ? 'archive' : route.name === 'zone' ? 'floor' : 'overview'
+  const activeFloor = route.name === 'zone' ? state.zones.findIndex((zone) => zone.id === route.zoneId) : undefined
 
   function updateZone(zoneId: ZoneKey, patch: Partial<Pick<Zone, 'displayName' | 'description'>>) {
     setState((current) => ({
@@ -88,7 +119,7 @@ export function App() {
 
   function deleteProject(projectId: string) {
     const project = state.projects.find((item) => item.id === projectId)
-    const confirmed = window.confirm(`确认删除这个项目吗？${project ? `\n\n${project.title}` : ''}`)
+    const confirmed = window.confirm(`确认让这枚火种永远熄灭吗？${project ? `\n\n${project.title}` : ''}`)
     if (!confirmed) return
 
     setState((current) => ({
@@ -149,18 +180,16 @@ export function App() {
   }
 
   async function refineSeed(messages: { role: 'user' | 'assistant'; content: string }[]): Promise<unknown> {
-    const context = state.projects.slice(0, 5).map((p) => `項目：${p.title}，狀態：${p.status}，區域：${p.zoneId}`).join('\n')
+    const context = state.projects.slice(0, 5).map((project) => `項目：${project.title}，狀態：${project.status}，區域：${project.zoneId}`).join('\n')
     const response = await callGardener({
       intent: 'refineSeed',
-      messages: [
-        { role: 'user', content: `現有專案參考：\n${context}\n\n` + messages[messages.length - 1].content },
-      ],
+      messages: [{ role: 'user', content: `現有專案參考：\n${context}\n\n${messages[messages.length - 1].content}` }],
     })
     return assertRefineSeedOutput(response)
   }
 
   async function summarizeProject(projectId: string) {
-    const project = state.projects.find((p) => p.id === projectId)
+    const project = state.projects.find((item) => item.id === projectId)
     if (!project) return
 
     const response = await callGardener({
@@ -173,7 +202,7 @@ export function App() {
         summary: summary.summary,
         obstacles: summary.obstacles,
         nextSteps: summary.nextSteps,
-        logHash: project.logs.map((l) => l.text).join(''),
+        logHash: project.logs.map((log) => log.text).join(''),
         updatedAt: new Date().toISOString(),
         version: 1,
       },
@@ -196,23 +225,77 @@ export function App() {
 
     setState((current) => ({
       ...current,
-      projects: [
-        {
-          ...project,
-          milestones: milestone ? [milestone] : [],
-        },
-        ...current.projects,
-      ],
+      projects: [{ ...project, milestones: milestone ? [milestone] : [] }, ...current.projects],
     }))
     setSeedRefiner({ open: false, initialIdea: '' })
   }
 
-  const nav = {
-    goHome: () => navigate({ name: 'home' }),
-    goList: () => navigate({ name: 'list' }),
-    goBoard: () => navigate({ name: 'board' }),
-    goZone: (zoneId: ZoneKey) => navigate({ name: 'zone', zoneId }),
-    goProject: (projectId: string) => setSelectedProjectId(projectId),
+  function clearEffectTimers() {
+    effectTimers.current.forEach((timer) => window.clearTimeout(timer))
+    effectTimers.current = []
+  }
+
+  function schedule(sequence: number, delay: number, action: () => void) {
+    const timer = window.setTimeout(() => {
+      if (effectSequence.current === sequence) action()
+    }, delay)
+    effectTimers.current.push(timer)
+  }
+
+  function resetTransientEffects() {
+    setDice(null)
+    setFate(null)
+    setDangerFlash(false)
+    setScreenShake(false)
+    setDevilEnraged(false)
+    setRolling(false)
+  }
+
+  function beginAdventure() {
+    effectSequence.current += 1
+    clearEffectTimers()
+    resetTransientEffects()
+    const next = startDungeonGame()
+    gameRef.current = next
+    setGame(next)
+  }
+
+  function resetAdventure() {
+    beginAdventure()
+  }
+
+  function rollFate() {
+    if (rolling || gameRef.current.winner || !gameRef.current.started) return
+    const sequence = effectSequence.current + 1
+    effectSequence.current = sequence
+    setFate(null)
+    setDangerFlash(false)
+    setScreenShake(false)
+    const rolled = rollDungeonDice()
+    setDice(rolled)
+    setRolling(true)
+
+    schedule(sequence, 900, () => {
+      const resolution = resolveDungeonTurn(gameRef.current, rolled)
+      gameRef.current = resolution.state
+      setGame(resolution.state)
+      setFate(resolution.fate ?? null)
+      if (resolution.danger) {
+        setDangerFlash(true)
+        setScreenShake(true)
+        schedule(sequence, 450, () => setScreenShake(false))
+        schedule(sequence, 700, () => setDangerFlash(false))
+      }
+      if (resolution.devilEnraged) {
+        setDevilEnraged(true)
+        schedule(sequence, 1000, () => setDevilEnraged(false))
+      }
+    })
+    schedule(sequence, 1400, () => {
+      setDice(null)
+      setRolling(false)
+    })
+    schedule(sequence, 2700, () => setFate(null))
   }
 
   function navigate(nextRoute: Route) {
@@ -223,20 +306,67 @@ export function App() {
     setRoute(nextRoute)
   }
 
+  const nav = {
+    goHome: () => navigate({ name: 'home' }),
+    goList: () => navigate({ name: 'list' }),
+    goBoard: () => navigate({ name: 'board' }),
+    goZone: (zoneId: ZoneKey) => navigate({ name: 'zone', zoneId }),
+    goProject: (projectId: string) => setSelectedProjectId(projectId),
+  }
+
+  function openFloor(floor: number) {
+    if (floor >= 0 && floor < state.zones.length) nav.goZone(state.zones[floor].id)
+    else nav.goBoard()
+  }
+
   return (
-    <div className="app-shell">
-      <TopNav active={route.name} onGarden={nav.goHome} onList={nav.goList} onBoard={nav.goBoard} onSettings={() => setShowAISettings(true)} />
+    <div className={`app-shell ${screenShake ? 'screen-shake' : ''}`}>
+      <DungeonBoardScene
+        mode={sceneMode}
+        activeFloor={activeFloor}
+        projects={state.projects}
+        players={game.players}
+        devilPosition={game.devilPosition}
+        devilEnraged={devilEnraged}
+        started={game.started}
+        onProjectOpen={nav.goProject}
+        onFloorSelect={openFloor}
+        onReady={() => setSceneReady(true)}
+      />
+      <div className="permanent-vignette" aria-hidden="true" />
+      <div className="stone-grain" aria-hidden="true" />
+      <TopNav
+        active={route.name}
+        onGarden={nav.goHome}
+        onList={nav.goList}
+        onBoard={nav.goBoard}
+        onSettings={() => setShowAISettings(true)}
+        sceneReady={sceneReady}
+      />
+
       {route.name === 'home' && (
-        <HomeView
-          zones={state.zones}
-          projects={state.projects}
-          onOpenZone={nav.goZone}
-          onOpenProject={nav.goProject}
-          onAddProject={addProject}
-          onUpdateProject={updateProject}
-          onDeleteProject={deleteProject}
-          onRefineSeed={(idea) => setSeedRefiner({ open: true, initialIdea: idea })}
-        />
+        <>
+          <HomeView
+            zones={state.zones}
+            projects={state.projects}
+            onOpenZone={nav.goZone}
+            onOpenProject={nav.goProject}
+            onAddProject={addProject}
+            onDeleteProject={deleteProject}
+            onRefineSeed={(idea) => setSeedRefiner({ open: true, initialIdea: idea })}
+          />
+          <DungeonHUD
+            game={game}
+            rolling={rolling}
+            dice={dice}
+            fate={fate}
+            devilEnraged={devilEnraged}
+            projectCount={state.projects.length}
+            onStart={beginAdventure}
+            onRoll={rollFate}
+            onReset={resetAdventure}
+          />
+        </>
       )}
       {route.name === 'list' && (
         <ListView
@@ -266,9 +396,6 @@ export function App() {
           onBack={nav.goHome}
           onUpdateZone={updateZone}
           onAddProject={addProject}
-          onUpdateProject={updateProject}
-          onAddLog={addProjectLog}
-          onAddOutcome={addOutcome}
           onOpenProject={nav.goProject}
           onOpenZone={nav.goZone}
           onDeleteProject={deleteProject}
@@ -306,32 +433,19 @@ export function App() {
           onRefine={refineSeed}
         />
       )}
+      <div className={`danger-flash ${dangerFlash ? 'is-visible' : ''}`} aria-hidden="true" />
     </div>
   )
 }
 
 function parseRoute(pathname: string): Route {
-  if (pathname === '/' || pathname === '/garden') {
-    return { name: 'home' }
-  }
-
-  if (pathname === '/plants' || pathname === '/plant-library') {
-    return { name: 'list' }
-  }
-
-  if (pathname === '/board') {
-    return { name: 'board' }
-  }
-
-  if (pathname === '/dev/plant-library') {
-    return { name: 'plantLibrary' }
-  }
+  if (pathname === '/' || pathname === '/garden') return { name: 'home' }
+  if (pathname === '/plants' || pathname === '/plant-library') return { name: 'list' }
+  if (pathname === '/board') return { name: 'board' }
+  if (pathname === '/dev/plant-library') return { name: 'plantLibrary' }
 
   const zoneMatch = pathname.match(/^\/garden\/([^/]+)$/)
-  if (zoneMatch && isZoneKey(zoneMatch[1])) {
-    return { name: 'zone', zoneId: zoneMatch[1] }
-  }
-
+  if (zoneMatch && isZoneKey(zoneMatch[1])) return { name: 'zone', zoneId: zoneMatch[1] }
   return { name: 'home' }
 }
 

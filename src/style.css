@@ -476,6 +476,60 @@ p {
     radial-gradient(circle at 50% 50%, transparent 62%, rgba(4, 9, 8, 0.22));
 }
 
+/* 3D 场景画布 */
+.garden-3d-canvas {
+  display: block;
+  outline: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2; /* 必须高于 .canvas-grid/.map-grid 装饰层，否则点击被拦截 */
+}
+
+/* 3D 植物标签层：DOM 覆盖，位置由 JS 每帧投影更新 */
+.garden-3d-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  overflow: visible;
+}
+
+/* 3D 模式下装饰网格不拦截画布交互 */
+.canvas-image-stage .canvas-grid,
+.canvas-image-stage .map-grid {
+  pointer-events: none;
+}
+
+.garden-3d-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, 0);
+  pointer-events: none;
+  white-space: nowrap;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.2;
+  color: #eaf4e6;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  will-change: transform;
+}
+
+.garden-3d-label .garden-3d-label-title {
+  display: block;
+  font-weight: 600;
+}
+
+.garden-3d-label .garden-3d-label-badge {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  background: rgba(20, 33, 30, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
 .overview-map {
   aspect-ratio: 16 / 9;
   border-radius: 6px;

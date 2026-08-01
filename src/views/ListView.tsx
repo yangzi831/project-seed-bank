@@ -12,6 +12,13 @@ const featuredPlantOrder = new Map([
   ['plant-21', 8],
 ])
 
+const statusLore = {
+  growing: { numeral: 'I', icon: '🔥', name: '火种初醒' },
+  mature: { numeral: 'II', icon: '☀️', name: '灵植长成' },
+  dormant: { numeral: 'III', icon: '🌑', name: '沉眠封印' },
+  harvested: { numeral: 'IV', icon: '🕊️', name: '逃出生天' },
+} as const
+
 type ListViewProps = {
   zones: Zone[]
   projects: ProjectSeed[]
@@ -44,9 +51,7 @@ export function ListView({ zones, projects, boardMode = false, onOpenProject, on
       .filter((plant) => {
         const matchesCategory = categoryFilter === 'all' || plant.category === categoryFilter
         const matchesQuery =
-          plant.id.toLowerCase().includes(lowered) ||
-          plant.englishName.toLowerCase().includes(lowered) ||
-          plant.chineseName.includes(query.trim())
+          plant.id.toLowerCase().includes(lowered) || plant.englishName.toLowerCase().includes(lowered) || plant.chineseName.includes(query.trim())
         return matchesCategory && matchesQuery
       })
       .sort(comparePlantsForCatalog)
@@ -54,32 +59,41 @@ export function ListView({ zones, projects, boardMode = false, onOpenProject, on
 
   if (!boardMode) {
     return (
-      <main className="page list-page plants-page">
-        <section className="list-workbench">
-          <aside className="glass-panel list-filter-sidebar">
-            <p className="eyebrow">Plant overview</p>
-            <h1>All Plants</h1>
-            <p>固定 24 株数字植物资产，查看生长中与长成两种状态。</p>
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索植物名" />
-            <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value as PlantCategory | 'all')}>
-              <option value="all">全部植物类型</option>
-              {plantCategories.map((category) => (
-                <option key={category} value={category}>
-                  {plantCategoryMeta[category].label}
-                </option>
-              ))}
-            </select>
-            <small>{filteredPlants.length} / {plantLibrary.length} plants</small>
+      <main className="page dungeon-page archive-page">
+        <section className="dungeon-dialog archive-shell">
+          <aside className="archive-filter-panel">
+            <p className="dungeon-kicker">THE BOTANICAL RELIQUARY</p>
+            <h1>灵植遗物图鉴</h1>
+            <p>二十四种被守墓人封入晶砂的植物灵魂。它们会在 3D 墓塔里化作旋转粒子，替项目火种照路。</p>
+            <div className="dungeon-rule" />
+            <label>
+              <span>检索铭文</span>
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="植物名 / 编号" />
+            </label>
+            <label>
+              <span>灵植谱系</span>
+              <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value as PlantCategory | 'all')}>
+                <option value="all">全部谱系</option>
+                {plantCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {plantCategoryMeta[category].label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <strong className="archive-count">{String(filteredPlants.length).padStart(2, '0')} / {plantLibrary.length}</strong>
+            <small>固定图鉴不会因项目状态而减少。</small>
           </aside>
 
-          <section className="plant-catalog-grid">
-            {filteredPlants.map((plant) => (
-              <button key={plant.id} className="plant-catalog-card glass-panel" type="button" onClick={() => setSelectedPlant(plant)}>
-                <span className="plant-catalog-image">
+          <section className="reliquary-grid" aria-label="24 株固定灵植图鉴">
+            {filteredPlants.map((plant, index) => (
+              <button key={plant.id} className="reliquary-card" type="button" onClick={() => setSelectedPlant(plant)}>
+                <span className="reliquary-number">{String(index + 1).padStart(2, '0')}</span>
+                <span className="reliquary-image">
                   <img src={publicPath(plant.mature)} alt="" draggable={false} />
-                  <img className="plant-mature-mini" src={publicPath(plant.growing)} alt="" draggable={false} />
+                  <img className="reliquary-seedling" src={publicPath(plant.growing)} alt="" draggable={false} />
                 </span>
-                <span className="plant-catalog-copy">
+                <span>
                   <strong>{plant.chineseName}</strong>
                   <small>{plant.englishName}</small>
                   <em>{plant.id} · {plantCategoryMeta[plant.category].label}</em>
@@ -91,27 +105,28 @@ export function ListView({ zones, projects, boardMode = false, onOpenProject, on
 
         {selectedPlant && (
           <div className="modal-scrim" role="presentation" onMouseDown={() => setSelectedPlant(null)}>
-            <section className="plant-library-modal glass-panel" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
+            <section className="plant-library-modal dungeon-dialog" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
               <header className="dossier-header">
                 <div>
-                  <p className="eyebrow">{selectedPlant.id} / {plantCategoryMeta[selectedPlant.category].label}</p>
+                  <p className="dungeon-kicker">{selectedPlant.id} · {plantCategoryMeta[selectedPlant.category].label}</p>
                   <h2>{selectedPlant.chineseName}</h2>
                   <p>{selectedPlant.englishName}</p>
                 </div>
-                <button className="dossier-close" type="button" onClick={() => setSelectedPlant(null)}>
-                  Close
+                <button className="bronze-icon-button" type="button" onClick={() => setSelectedPlant(null)} aria-label="关闭图鉴">
+                  ×
                 </button>
               </header>
               <div className="plant-state-compare">
                 <figure>
                   <img src={publicPath(selectedPlant.growing)} alt={`${selectedPlant.chineseName} growing`} draggable={false} />
-                  <figcaption>生长中 / Growing</figcaption>
+                  <figcaption>🌱 火种初醒 / Growing</figcaption>
                 </figure>
                 <figure>
                   <img src={publicPath(selectedPlant.mature)} alt={`${selectedPlant.chineseName} mature`} draggable={false} />
-                  <figcaption>长成 / Mature</figcaption>
+                  <figcaption>✨ 灵植长成 / Mature</figcaption>
                 </figure>
               </div>
+              <p className="reliquary-note">被项目选中后，这两张静态灵植图会在墓塔中采样为带深度的旋转 3D 粒子云。</p>
             </section>
           </div>
         )}
@@ -120,23 +135,28 @@ export function ListView({ zones, projects, boardMode = false, onOpenProject, on
   }
 
   return (
-    <main className="page list-page board-page">
-      <section className="list-workbench">
-        <aside className="glass-panel list-filter-sidebar">
-          <p className="eyebrow">Growth status board</p>
-          <h1>Growth Board</h1>
-          <p>按成长状态查看项目流转。</p>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索项目名" />
+    <main className="page dungeon-page fate-board-page">
+      <section className="board-command dungeon-dialog">
+        <header>
+          <div>
+            <p className="dungeon-kicker">THE LEDGER OF FATES</p>
+            <h1>命运石板</h1>
+            <p>每一列都是火种当前被古墓判定的命运。</p>
+          </div>
+          <strong>{filtered.length} RELICS</strong>
+        </header>
+        <div className="board-filters">
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索项目铭文" />
           <select value={zoneFilter} onChange={(event) => setZoneFilter(event.target.value)}>
-            <option value="all">全部区域</option>
-            {zones.map((zone) => (
+            <option value="all">全部墓层</option>
+            {zones.map((zone, index) => (
               <option key={zone.id} value={zone.id}>
-                {zone.displayName}
+                第 {index + 1} 层 · {zone.displayName}
               </option>
             ))}
           </select>
           <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-            <option value="all">全部状态</option>
+            <option value="all">全部命运</option>
             {statusOrder.map((status) => (
               <option key={status} value={status}>
                 {statusMeta[status].label}
@@ -144,45 +164,48 @@ export function ListView({ zones, projects, boardMode = false, onOpenProject, on
             ))}
           </select>
           <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value as PlantCategory | 'all')}>
-            <option value="all">全部植物</option>
+            <option value="all">全部灵植</option>
             {plantCategories.map((category) => (
               <option key={category} value={category}>
                 {plantCategoryMeta[category].label}
               </option>
             ))}
           </select>
-          <button className="ghost-button small subtle-action" type="button" onClick={onGenerateMockProjects}>
-            生成示例项目
+          <button className="bronze-button" type="button" onClick={onGenerateMockProjects}>
+            ↻ 重铸示例石板
           </button>
-          <small>{filtered.length} projects matched</small>
-        </aside>
+        </div>
 
-        <section className="list-results">
-          <section className="board-grid">
-              {statusOrder.map((status) => {
-                const laneProjects = filtered.filter((project) => project.status === status)
-                return (
-                  <div key={status} className="board-lane glass-panel">
-                    <h2>
-                      {statusMeta[status].label} <span>· {laneProjects.length}</span>
-                    </h2>
-                    <div className="seed-list">
-                      {laneProjects.map((project) => (
-                        <ProjectCard
-                          key={project.id}
-                          project={project}
-                          zoneName={zones.find((zone) => zone.id === project.zoneId)?.displayName}
-                          compact
-                          board
-                          onOpen={onOpenProject}
-                          onDelete={onDeleteProject}
-                        />
-                      ))}
-                    </div>
+        <section className="fate-lanes">
+          {statusOrder.map((status) => {
+            const lane = statusLore[status]
+            const laneProjects = filtered.filter((project) => project.status === status)
+            return (
+              <section key={status} className={`fate-lane fate-lane-${status}`}>
+                <header>
+                  <b>{lane.numeral}</b>
+                  <span>{lane.icon}</span>
+                  <div>
+                    <strong>{lane.name}</strong>
+                    <small>{statusMeta[status].label} · {laneProjects.length}</small>
                   </div>
-                )
-              })}
-          </section>
+                </header>
+                <div className="fate-lane-scroll">
+                  {laneProjects.map((project) => (
+                    <ProjectCard
+                      key={project.id}
+                      project={project}
+                      zoneName={zones.find((zone) => zone.id === project.zoneId)?.displayName}
+                      compact
+                      board
+                      onOpen={onOpenProject}
+                      onDelete={onDeleteProject}
+                    />
+                  ))}
+                </div>
+              </section>
+            )
+          })}
         </section>
       </section>
     </main>

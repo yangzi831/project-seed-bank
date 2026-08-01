@@ -31,7 +31,7 @@ export function SeedRefiner({ initialIdea, onApply, onCancel, onRefine }: SeedRe
         ...newMessages,
         {
           role: 'assistant',
-          content: `已為你整理成：${parsed.title}（${parsed.zoneId} / ${parsed.plantCategory}）\n${parsed.description}`,
+          content: `先知已经把模糊火种刻成：${parsed.title}（${parsed.zoneId} / ${parsed.plantCategory}）\n${parsed.description}`,
         },
       ])
     } catch (error) {
@@ -52,20 +52,20 @@ export function SeedRefiner({ initialIdea, onApply, onCancel, onRefine }: SeedRe
     <div className="modal-scrim" onClick={onCancel}>
       <div className="glass-panel project-dossier" onClick={(e) => e.stopPropagation()}>
         <div className="dossier-header">
-          <h2>和园丁聊聊</h2>
+          <h2>与墓中先知交谈</h2>
           <button className="dossier-close" type="button" onClick={onCancel}>
-            关闭
+            合上石板
           </button>
         </div>
 
         <div className="seed-refiner-messages">
-          {messages.length === 0 && <p className="eyebrow">描述你的想法，园丁会帮你把灵感变成一颗具体的种子。</p>}
+          {messages.length === 0 && <p className="eyebrow">说出模糊的愿望，先知会把它刻成一枚可执行的项目火种。</p>}
           {messages.map((message, index) => (
             <div key={index} className={`seed-refiner-message ${message.role}`}>
               {message.content}
             </div>
           ))}
-          {loading && <div className="seed-refiner-message assistant">园丁正在思考...</div>}
+          {loading && <div className="seed-refiner-message assistant">先知正在读取火焰...</div>}
         </div>
 
         <div className="dossier-inline-form" style={{ marginTop: '16px' }}>
