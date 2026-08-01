@@ -424,6 +424,7 @@ export function App() {
           onDeleteProject={deleteProject}
           onAskGardener={(projectId) => summarizeProject(projectId)}
           initialTab={selectedProjectTab}
+          initialAgentScenario={selectedAgentScenario}
         />
       )}
       {seedRefiner.open && (

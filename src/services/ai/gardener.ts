@@ -90,7 +90,10 @@ function parseJsonFromResponse(text: string): unknown {
   try {
     return JSON.parse(jsonText)
   } catch {
-    throw new GardenerError('AI 返回的內容無法解析為 JSON')
+    return {
+      summary: trimmed,
+      suggestions: [],
+    }
   }
 }
 
