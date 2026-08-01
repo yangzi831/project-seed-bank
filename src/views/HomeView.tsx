@@ -1,6 +1,10 @@
 import { useMemo, useRef, useState } from 'react'
+import { loadGardenKeeperPersonality, saveGardenKeeperPersonality } from '../agent/personalities'
+import type { GardenKeeperPersonality } from '../agent/personalities'
 import { CanvasStage } from '../components/CanvasStage'
 import { DraggablePlant } from '../components/DraggablePlant'
+import { GardenKeeperPortal } from '../components/GardenKeeperPortal'
+import { KeeperAvatar } from '../components/KeeperAvatar'
 import { PlantPicker } from '../components/PlantPicker'
 import { ProjectCard } from '../components/ProjectCard'
 import { getRandomPlantVariant, statusMeta, statusOrder } from '../data/garden'
@@ -62,14 +66,17 @@ type HomeViewProps = {
   projects: ProjectSeed[]
   onOpenZone: (zoneId: ZoneKey) => void
   onOpenProject: (projectId: string) => void
+  onOpenKeeper: (projectId: string) => void
   onAddProject: (zoneId: ZoneKey, title: string, description: string, plantCategory: PlantCategory, plantVariant?: string) => void
   onUpdateProject: (projectId: string, patch: Partial<ProjectSeed>) => void
   onDeleteProject: (projectId: string) => void
   onRefineSeed?: (idea: string) => void
 }
 
-export function HomeView({ zones, projects, onOpenZone, onOpenProject, onAddProject, onUpdateProject, onDeleteProject, onRefineSeed }: HomeViewProps) {
+export function HomeView({ zones, projects, onOpenZone, onOpenProject, onOpenKeeper, onAddProject, onUpdateProject, onDeleteProject, onRefineSeed }: HomeViewProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isKeeperOpen, setIsKeeperOpen] = useState(false)
+  const [keeperPersonality, setKeeperPersonality] = useState(() => loadGardenKeeperPersonality())
   const [selectedZoneId, setSelectedZoneId] = useState<ZoneKey>('flower')
   const [selectedCategory, setSelectedCategory] = useState<PlantCategory | 'all'>('all')
   const [selectedVariant, setSelectedVariant] = useState<string | undefined>(() => getRandomPlantVariant('uncategorized'))
@@ -92,6 +99,11 @@ export function HomeView({ zones, projects, onOpenZone, onOpenProject, onAddProj
     harvested: projects.filter((project) => project.status === 'harvested').length,
   }
   const visibleProjects = statusFilter === 'all' ? projects : projects.filter((project) => project.status === statusFilter)
+
+  function selectKeeperPersonality(personality: GardenKeeperPersonality) {
+    setKeeperPersonality(personality)
+    saveGardenKeeperPersonality(personality.id)
+  }
 
   return (
     <main className="page workbench-page home-page">
@@ -165,6 +177,16 @@ export function HomeView({ zones, projects, onOpenZone, onOpenProject, onAddProj
           <div className="overview-frame">
             <CanvasStage ref={overviewRef} src="/images/garden/overview.png" className="overview-map main-map">
               <div className="map-grid" aria-hidden="true" />
+              <button className={`garden-keeper-character keeper-${keeperPersonality.style}`} type="button" onClick={() => setIsKeeperOpen(true)} aria-label={`拜访 Garden Keeper ${keeperPersonality.name}`}>
+                <span className="keeper-character-aura" aria-hidden="true" />
+                <span className="keeper-character-particles" aria-hidden="true"><i /><i /><i /><i /></span>
+                <KeeperAvatar personality={keeperPersonality} size="presence" />
+                <span className="keeper-character-presence">
+                  <small>Garden Keeper</small>
+                  <strong>{keeperPersonality.name}</strong>
+                  <em>正在庄园里巡视</em>
+                </span>
+              </button>
               <div className="overview-plants" aria-label="Projects planted in the garden">
                 {visibleProjects.map((project) => {
                   const zoneProjects = visibleProjects.filter((item) => item.zoneId === project.zoneId)
@@ -273,6 +295,16 @@ export function HomeView({ zones, projects, onOpenZone, onOpenProject, onAddProj
             </div>
           </form>
         </div>
+      )}
+      {isKeeperOpen && (
+        <GardenKeeperPortal
+          projects={projects}
+          personality={keeperPersonality}
+          onPersonalityChange={selectKeeperPersonality}
+          onOpenProject={onOpenProject}
+          onStartConversation={(projectId) => { setIsKeeperOpen(false); onOpenKeeper(projectId) }}
+          onClose={() => setIsKeeperOpen(false)}
+        />
       )}
     </main>
   )

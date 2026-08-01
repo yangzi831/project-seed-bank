@@ -12,9 +12,9 @@ import {
   saveGardenState,
 } from './data/garden'
 import type { GardenState, OutcomeType, PlantCategory, ProjectSeed, ProjectStatus, Zone, ZoneKey } from './data/garden'
-import { callGardener, assertRefineSeedOutput } from './services/ai/gardener'
-import { buildProjectContext } from './services/ai/context'
-import type { RefineSeedOutput, SummarizeGrowthOutput } from './services/ai/types'
+import { createAgentContext, createGardenAgentContext } from './agent/context'
+import { requestGardenKeeper } from './agent/service'
+import type { AgentSeedDraft } from './agent/types'
 import { loadAISettings, saveAISettings } from './services/ai/settings'
 import { HomeView } from './views/HomeView'
 import { ListView } from './views/ListView'
@@ -33,6 +33,7 @@ export function App() {
   const [state, setState] = useState<GardenState>(() => loadGardenState())
   const [route, setRoute] = useState<Route>(() => parseRoute(getAppPathname()))
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [selectedProjectTab, setSelectedProjectTab] = useState<'overview' | 'keeper'>('overview')
   const [aiSettings, setAISettings] = useState(() => loadAISettings())
   const [showAISettings, setShowAISettings] = useState(false)
   const [seedRefiner, setSeedRefiner] = useState<{ open: boolean; initialIdea: string }>({ open: false, initialIdea: '' })
@@ -149,30 +150,29 @@ export function App() {
   }
 
   async function refineSeed(messages: { role: 'user' | 'assistant'; content: string }[]): Promise<unknown> {
-    const context = state.projects.slice(0, 5).map((p) => `項目：${p.title}，狀態：${p.status}，區域：${p.zoneId}`).join('\n')
-    const response = await callGardener({
-      intent: 'refineSeed',
-      messages: [
-        { role: 'user', content: `現有專案參考：\n${context}\n\n` + messages[messages.length - 1].content },
-      ],
+    const response = await requestGardenKeeper({
+      scenario: 'seed-discovery',
+      message: messages[messages.length - 1]?.content ?? '',
+      context: createGardenAgentContext(state),
     })
-    return assertRefineSeedOutput(response)
+    if (!response.suggestion.seedDraft) throw new Error('园丁没有返回可应用的项目种子')
+    return response.suggestion.seedDraft
   }
 
   async function summarizeProject(projectId: string) {
     const project = state.projects.find((p) => p.id === projectId)
     if (!project) return
 
-    const response = await callGardener({
-      intent: 'summarizeGrowth',
-      messages: [{ role: 'user', content: buildProjectContext(project) }],
+    const response = await requestGardenKeeper({
+      scenario: 'growth-companion',
+      message: '整理这个项目目前的成长轨迹，并提出下一步。',
+      context: createAgentContext(project),
     })
-    const summary = response as SummarizeGrowthOutput
     updateProject(projectId, {
       aiSummary: {
-        summary: summary.summary,
-        obstacles: summary.obstacles,
-        nextSteps: summary.nextSteps,
+        summary: response.suggestion.summary,
+        obstacles: response.suggestion.obstacles ?? [],
+        nextSteps: response.suggestion.points,
         logHash: project.logs.map((l) => l.text).join(''),
         updatedAt: new Date().toISOString(),
         version: 1,
@@ -180,7 +180,7 @@ export function App() {
     })
   }
 
-  function applyRefinedSeed(output: RefineSeedOutput) {
+  function applyRefinedSeed(output: AgentSeedDraft) {
     const project = createProjectSeed({
       zoneId: output.zoneId,
       title: output.title,
@@ -212,7 +212,14 @@ export function App() {
     goList: () => navigate({ name: 'list' }),
     goBoard: () => navigate({ name: 'board' }),
     goZone: (zoneId: ZoneKey) => navigate({ name: 'zone', zoneId }),
-    goProject: (projectId: string) => setSelectedProjectId(projectId),
+    goProject: (projectId: string) => {
+      setSelectedProjectTab('overview')
+      setSelectedProjectId(projectId)
+    },
+    goKeeper: (projectId: string) => {
+      setSelectedProjectTab('keeper')
+      setSelectedProjectId(projectId)
+    },
   }
 
   function navigate(nextRoute: Route) {
@@ -232,6 +239,7 @@ export function App() {
           projects={state.projects}
           onOpenZone={nav.goZone}
           onOpenProject={nav.goProject}
+          onOpenKeeper={nav.goKeeper}
           onAddProject={addProject}
           onUpdateProject={updateProject}
           onDeleteProject={deleteProject}
@@ -286,6 +294,7 @@ export function App() {
           onAdvance={advanceProject}
           onDeleteProject={deleteProject}
           onAskGardener={(projectId) => summarizeProject(projectId)}
+          initialTab={selectedProjectTab}
         />
       )}
       {showAISettings && (

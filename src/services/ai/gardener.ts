@@ -1,7 +1,7 @@
 import type { AISettings } from './settings'
 import { loadAISettings } from './settings'
-import type { GardenerIntent, GardenerMessage, RefineSeedOutput, SummarizeGrowthOutput } from './types'
-import { gardenerSystemPrompt, refineSeedPrompt, summarizeGrowthPrompt } from './prompts'
+import type { GardenerIntent, GardenerMessage, GenerateHarvestOutput, RefineSeedOutput, SummarizeGrowthOutput } from './types'
+import { gardenerSystemPrompt, generateHarvestPrompt, refineSeedPrompt, summarizeGrowthPrompt } from './prompts'
 
 const AnthropicVersion = '2023-06-01'
 
@@ -43,6 +43,8 @@ function buildPromptForIntent(intent: GardenerIntent): string {
       return refineSeedPrompt()
     case 'summarizeGrowth':
       return summarizeGrowthPrompt()
+    case 'generateHarvest':
+      return generateHarvestPrompt()
     default:
       return ''
   }
@@ -152,6 +154,15 @@ export function assertSummarizeGrowthOutput(data: unknown): SummarizeGrowthOutpu
     obstacles: Array.isArray(d.obstacles) ? d.obstacles : [],
     nextSteps: Array.isArray(d.nextSteps) ? d.nextSteps : [],
     milestoneSuggestions: Array.isArray(d.milestoneSuggestions) ? d.milestoneSuggestions : [],
+  }
+}
+
+export function assertGenerateHarvestOutput(data: unknown): GenerateHarvestOutput {
+  const d = data as Partial<GenerateHarvestOutput>
+  return {
+    summary: d.summary ?? '',
+    highlights: Array.isArray(d.highlights) ? d.highlights : [],
+    markdown: d.markdown ?? '',
   }
 }
 

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AgentPanel } from '../components/AgentPanel'
 import { PlantPicker } from '../components/PlantPicker'
 import { PlantSprite } from '../components/PlantSprite'
 import { plantCategoryMeta, statusMeta, statusOrder } from '../data/garden'
@@ -6,7 +7,7 @@ import type { OutcomeType, PlantCategory, ProjectSeed, Zone } from '../data/gard
 import { plantLibrary } from '../data/plantLibrary'
 import { publicPath } from '../utils/publicPath'
 
-type DetailTab = 'overview' | 'logs' | 'outcomes' | 'settings' | 'gardener'
+type DetailTab = 'overview' | 'keeper' | 'logs' | 'outcomes' | 'settings'
 
 type ProjectDetailViewProps = {
   project: ProjectSeed
@@ -18,6 +19,7 @@ type ProjectDetailViewProps = {
   onAdvance: (project: ProjectSeed) => void
   onDeleteProject: (projectId: string) => void
   onAskGardener?: (projectId: string) => void
+  initialTab?: 'overview' | 'keeper'
 }
 
 export function ProjectDetailView({
@@ -29,9 +31,9 @@ export function ProjectDetailView({
   onAddOutcome,
   onAdvance,
   onDeleteProject,
-  onAskGardener,
+  initialTab = 'overview',
 }: ProjectDetailViewProps) {
-  const [activeTab, setActiveTab] = useState<DetailTab>('overview')
+  const [activeTab, setActiveTab] = useState<DetailTab>(initialTab)
   const [isLogOpen, setIsLogOpen] = useState(false)
   const [isOutcomeOpen, setIsOutcomeOpen] = useState(false)
   const [isPlantChooserOpen, setIsPlantChooserOpen] = useState(false)
@@ -76,6 +78,9 @@ export function ProjectDetailView({
         </section>
 
         <section className="dossier-actions">
+          <button className="keeper-entry-button" type="button" onClick={() => setActiveTab('keeper')}>
+            ✦ AI Garden Keeper
+          </button>
           <button type="button" onClick={() => {
             setActiveTab('logs')
             setIsLogOpen(true)
@@ -117,6 +122,9 @@ export function ProjectDetailView({
           <button className={activeTab === 'overview' ? 'active' : ''} type="button" onClick={() => setActiveTab('overview')}>
             概览
           </button>
+          <button className={activeTab === 'keeper' ? 'active keeper-tab' : 'keeper-tab'} type="button" onClick={() => setActiveTab('keeper')}>
+            ✦ 守护者
+          </button>
           <button className={activeTab === 'logs' ? 'active' : ''} type="button" onClick={() => setActiveTab('logs')}>
             生长日志 · {project.logs.length}
           </button>
@@ -126,12 +134,10 @@ export function ProjectDetailView({
           <button className={activeTab === 'settings' ? 'active' : ''} type="button" onClick={() => setActiveTab('settings')}>
             设置
           </button>
-          <button className={activeTab === 'gardener' ? 'active' : ''} type="button" onClick={() => setActiveTab('gardener')}>
-            园丁
-          </button>
         </nav>
 
         <section className="dossier-tab-panel">
+          {activeTab === 'keeper' && <AgentPanel key={project.id} project={project} />}
           {activeTab === 'overview' && (
             <div className="dossier-grid compact-dossier-grid">
               <div className="glass-panel">
@@ -305,46 +311,6 @@ export function ProjectDetailView({
             </div>
           )}
 
-          {activeTab === 'gardener' && (
-            <div className="dossier-scroll-section">
-              <div className="glass-panel gardener-panel">
-                <p className="eyebrow">Digital gardener</p>
-                <h3>园丁建议</h3>
-                {project.aiSummary ? (
-                  <div className="gardener-insight">
-                    <p>{project.aiSummary.summary}</p>
-                    {project.aiSummary.obstacles.length > 0 && (
-                      <>
-                        <p className="eyebrow">发现的阻碍</p>
-                        <ul>
-                          {project.aiSummary.obstacles.map((obstacle, index) => (
-                            <li key={index}>{obstacle}</li>
-                          ))}
-                        </ul>
-                      </>
-                    )}
-                    {project.aiSummary.nextSteps.length > 0 && (
-                      <>
-                        <p className="eyebrow">下一步建议</p>
-                        <ul>
-                          {project.aiSummary.nextSteps.map((step, index) => (
-                            <li key={index}>{step}</li>
-                          ))}
-                        </ul>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <p>还没有生成过园丁建议。</p>
-                )}
-                {onAskGardener && (
-                  <button type="button" onClick={() => onAskGardener(project.id)}>
-                    请园丁整理
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
         </section>
       </main>
     </div>
