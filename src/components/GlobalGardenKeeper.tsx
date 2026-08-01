@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { DemoSeedDraft } from '../agent/demoConversation'
 import type { GardenAgentContext } from '../agent/types'
 import type { GardenKeeper } from '../data/keepers'
 import { GardenKeeperChatPanel, keeperChineseName } from './GardenKeeperChatPanel'
@@ -9,9 +10,10 @@ type GlobalGardenKeeperProps = {
   context: GardenAgentContext
   onChangeKeeper: () => void
   onOpenCottage: () => void
+  onPlantSeed: (draft: DemoSeedDraft) => void
 }
 
-export function GlobalGardenKeeper({ keeper, context, onChangeKeeper, onOpenCottage }: GlobalGardenKeeperProps) {
+export function GlobalGardenKeeper({ keeper, context, onChangeKeeper, onOpenCottage, onPlantSeed }: GlobalGardenKeeperProps) {
   const [isChatOpen, setIsChatOpen] = useState(false)
 
   return (
@@ -36,6 +38,7 @@ export function GlobalGardenKeeper({ keeper, context, onChangeKeeper, onOpenCott
         <GardenKeeperChatPanel
           keeper={keeper}
           context={context}
+          onPlantSeed={onPlantSeed}
           onChangeKeeper={() => {
             setIsChatOpen(false)
             onChangeKeeper()

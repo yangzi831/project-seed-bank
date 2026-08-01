@@ -63,7 +63,7 @@ export type AgentSuggestion = {
 export type AgentResponse = {
   requestId: string
   suggestion: AgentSuggestion
-  source: 'mock' | 'api'
+  source: 'mock' | 'api' | 'demo'
 }
 
 export type AgentSeedDraft = {

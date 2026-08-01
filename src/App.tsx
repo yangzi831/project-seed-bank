@@ -18,6 +18,7 @@ import type { GardenState, OutcomeType, PlantCategory, ProjectSeed, ProjectStatu
 import { createAgentContext, createGardenAgentContext } from './agent/context'
 import { requestGardenKeeper } from './agent/service'
 import type { AgentScenario, AgentSeedDraft } from './agent/types'
+import type { DemoSeedDraft } from './agent/demoConversation'
 import { loadSelectedKeeper, saveSelectedKeeper } from './data/keepers'
 import type { GardenKeeper } from './data/keepers'
 import { loadAISettings, saveAISettings } from './services/ai/settings'
@@ -267,6 +268,12 @@ export function App() {
         <GlobalGardenKeeper
           keeper={selectedKeeper}
           context={keeperChatContext}
+          onPlantSeed={(draft: DemoSeedDraft) => addProject(
+            draft.zoneId,
+            draft.projectName,
+            draft.description,
+            draft.plantCategory,
+          )}
           onChangeKeeper={() => setShowKeeperSelection(true)}
           onOpenCottage={() => setShowKeeperPortal(true)}
         />
