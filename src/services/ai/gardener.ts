@@ -34,7 +34,11 @@ export async function callGardener(options: CallOptions): Promise<unknown> {
   const promptContent = buildPromptForIntent(options.intent)
 
   const response = await fetchLLM(settings, system, promptContent, options.messages)
-  return parseJsonFromResponse(response)
+  console.info('[Garden Keeper] raw AI response:', response)
+
+  const parsedResponse = parseJsonFromResponse(response)
+  console.info('[Garden Keeper] parsed AI response:', JSON.stringify(parsedResponse, null, 2))
+  return parsedResponse
 }
 
 function buildPromptForIntent(intent: GardenerIntent): string {
@@ -127,7 +131,10 @@ function parseJsonFromResponse(text: string): unknown {
   try {
     return JSON.parse(jsonText)
   } catch {
-    throw new GardenerError('AI 返回的內容無法解析為 JSON')
+    return {
+      summary: trimmed,
+      suggestions: [],
+    }
   }
 }
 

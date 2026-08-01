@@ -1,4 +1,6 @@
 import type { GardenState, ProjectSeed } from '../data/garden'
+import type { Zone } from '../data/garden'
+import type { GardenKeeper } from '../data/keepers'
 import type { GardenAgentContext, ProjectAgentContext } from './types'
 
 export function createAgentContext(project: ProjectSeed): ProjectAgentContext {
@@ -15,9 +17,34 @@ export function createAgentContext(project: ProjectSeed): ProjectAgentContext {
   }
 }
 
-export function createGardenAgentContext(state: Pick<GardenState, 'projects'>): GardenAgentContext {
+export function createGardenAgentContext(
+  state: Pick<GardenState, 'projects'>,
+  options?: { keeper?: GardenKeeper; project?: ProjectSeed; zone?: Zone },
+): GardenAgentContext {
+  const keeper = options?.keeper
   return {
     kind: 'garden',
     projects: state.projects.slice(0, 12).map(({ title, status, zoneId }) => ({ title, status, zoneId })),
+    currentProject: options?.project ? createAgentContext(options.project) : undefined,
+    currentGarden: options?.zone
+      ? { id: options.zone.id, name: options.zone.displayName, description: options.zone.description }
+      : { name: 'Project Seed Bank' },
+    keeper: keeper
+      ? {
+          id: keeper.id,
+          name: keeper.name,
+          personality: keeper.personality,
+          description: keeper.description,
+          tone: keeper.tone,
+          recommendedUse: keeper.recommendedUse,
+        }
+      : {
+          id: 'garden-keeper',
+          name: 'Garden Keeper',
+          personality: '收藏陪伴型',
+          description: '陪伴项目在数字花园中持续生长。',
+          tone: '温和、克制。',
+          recommendedUse: '照料当前花园',
+        },
   }
 }

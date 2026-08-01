@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { TopNav } from './components/TopNav'
 import { AISettingsPanel } from './components/AISettingsPanel'
+import { KeeperSelection } from './components/KeeperSelection'
+import { GlobalGardenKeeper } from './components/GlobalGardenKeeper'
+import { GardenKeeperPortal } from './components/GardenKeeperPortal'
 import { SeedRefiner } from './components/SeedRefiner'
 import {
   createMockProjects,
@@ -14,7 +17,9 @@ import {
 import type { GardenState, OutcomeType, PlantCategory, ProjectSeed, ProjectStatus, Zone, ZoneKey } from './data/garden'
 import { createAgentContext, createGardenAgentContext } from './agent/context'
 import { requestGardenKeeper } from './agent/service'
-import type { AgentSeedDraft } from './agent/types'
+import type { AgentScenario, AgentSeedDraft } from './agent/types'
+import { loadSelectedKeeper, saveSelectedKeeper } from './data/keepers'
+import type { GardenKeeper } from './data/keepers'
 import { loadAISettings, saveAISettings } from './services/ai/settings'
 import { HomeView } from './views/HomeView'
 import { ListView } from './views/ListView'
@@ -34,6 +39,10 @@ export function App() {
   const [route, setRoute] = useState<Route>(() => parseRoute(getAppPathname()))
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [selectedProjectTab, setSelectedProjectTab] = useState<'overview' | 'keeper'>('overview')
+  const [selectedAgentScenario, setSelectedAgentScenario] = useState<AgentScenario>('growth-companion')
+  const [selectedKeeper, setSelectedKeeper] = useState<GardenKeeper>(() => loadSelectedKeeper())
+  const [showKeeperSelection, setShowKeeperSelection] = useState(false)
+  const [showKeeperPortal, setShowKeeperPortal] = useState(false)
   const [aiSettings, setAISettings] = useState(() => loadAISettings())
   const [showAISettings, setShowAISettings] = useState(false)
   const [seedRefiner, setSeedRefiner] = useState<{ open: boolean; initialIdea: string }>({ open: false, initialIdea: '' })
@@ -62,6 +71,21 @@ export function App() {
     if (!selectedProjectId) return undefined
     return state.projects.find((project) => project.id === selectedProjectId)
   }, [selectedProjectId, state.projects])
+
+  const keeperChatContext = useMemo(() => {
+    const focusProject = currentProject ?? [...state.projects]
+      .filter((project) => route.name !== 'zone' || project.zoneId === route.zoneId)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0]
+    const focusZone = state.zones.find((zone) => zone.id === focusProject?.zoneId) ?? currentZone
+    const gardenProjects = focusZone
+      ? state.projects.filter((project) => project.zoneId === focusZone.id)
+      : state.projects
+
+    return createGardenAgentContext(
+      { projects: gardenProjects },
+      { keeper: selectedKeeper, project: focusProject, zone: focusZone },
+    )
+  }, [currentProject, currentZone, route, selectedKeeper, state.projects, state.zones])
 
   function updateZone(zoneId: ZoneKey, patch: Partial<Pick<Zone, 'displayName' | 'description'>>) {
     setState((current) => ({
@@ -207,6 +231,11 @@ export function App() {
     setSeedRefiner({ open: false, initialIdea: '' })
   }
 
+  function selectKeeper(keeper: GardenKeeper) {
+    setSelectedKeeper(keeper)
+    saveSelectedKeeper(keeper.id)
+  }
+
   const nav = {
     goHome: () => navigate({ name: 'home' }),
     goList: () => navigate({ name: 'list' }),
@@ -216,8 +245,9 @@ export function App() {
       setSelectedProjectTab('overview')
       setSelectedProjectId(projectId)
     },
-    goKeeper: (projectId: string) => {
+    goKeeper: (projectId: string, scenario: AgentScenario = 'growth-companion') => {
       setSelectedProjectTab('keeper')
+      setSelectedAgentScenario(scenario)
       setSelectedProjectId(projectId)
     },
   }
@@ -233,13 +263,20 @@ export function App() {
   return (
     <div className="app-shell">
       <TopNav active={route.name} onGarden={nav.goHome} onList={nav.goList} onBoard={nav.goBoard} onSettings={() => setShowAISettings(true)} />
+      {selectedKeeper && !showKeeperSelection && !showKeeperPortal && (route.name === 'home' || route.name === 'zone' || Boolean(currentProject)) && (
+        <GlobalGardenKeeper
+          keeper={selectedKeeper}
+          context={keeperChatContext}
+          onChangeKeeper={() => setShowKeeperSelection(true)}
+          onOpenCottage={() => setShowKeeperPortal(true)}
+        />
+      )}
       {route.name === 'home' && (
         <HomeView
           zones={state.zones}
           projects={state.projects}
           onOpenZone={nav.goZone}
           onOpenProject={nav.goProject}
-          onOpenKeeper={nav.goKeeper}
           onAddProject={addProject}
           onUpdateProject={updateProject}
           onDeleteProject={deleteProject}
@@ -295,6 +332,7 @@ export function App() {
           onDeleteProject={deleteProject}
           onAskGardener={(projectId) => summarizeProject(projectId)}
           initialTab={selectedProjectTab}
+          initialAgentScenario={selectedAgentScenario}
         />
       )}
       {showAISettings && (
@@ -313,6 +351,39 @@ export function App() {
           onApply={applyRefinedSeed}
           onCancel={() => setSeedRefiner({ open: false, initialIdea: '' })}
           onRefine={refineSeed}
+        />
+      )}
+      {showKeeperSelection && (
+        <div className="modal-scrim keeper-selection-scrim" role="presentation" onMouseDown={() => setShowKeeperSelection(false)}>
+          <div className="keeper-selection-dialog" onMouseDown={(event) => event.stopPropagation()}>
+            <KeeperSelection
+              initialKeeperId={selectedKeeper.id}
+              onConfirm={(keeper) => {
+                selectKeeper(keeper)
+                setShowKeeperSelection(false)
+              }}
+              onCancel={() => setShowKeeperSelection(false)}
+            />
+          </div>
+        </div>
+      )}
+      {showKeeperPortal && (
+        <GardenKeeperPortal
+          projects={state.projects}
+          keeper={selectedKeeper}
+          onChangeKeeper={() => {
+            setShowKeeperPortal(false)
+            setShowKeeperSelection(true)
+          }}
+          onOpenProject={(projectId) => {
+            setShowKeeperPortal(false)
+            nav.goProject(projectId)
+          }}
+          onStartFlow={(projectId, scenario) => {
+            setShowKeeperPortal(false)
+            nav.goKeeper(projectId, scenario)
+          }}
+          onClose={() => setShowKeeperPortal(false)}
         />
       )}
     </div>

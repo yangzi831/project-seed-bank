@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { AgentScenario } from '../agent/types'
 import { AgentPanel } from '../components/AgentPanel'
 import { PlantPicker } from '../components/PlantPicker'
 import { PlantSprite } from '../components/PlantSprite'
@@ -20,6 +21,7 @@ type ProjectDetailViewProps = {
   onDeleteProject: (projectId: string) => void
   onAskGardener?: (projectId: string) => void
   initialTab?: 'overview' | 'keeper'
+  initialAgentScenario?: AgentScenario
 }
 
 export function ProjectDetailView({
@@ -32,6 +34,7 @@ export function ProjectDetailView({
   onAdvance,
   onDeleteProject,
   initialTab = 'overview',
+  initialAgentScenario = 'growth-companion',
 }: ProjectDetailViewProps) {
   const [activeTab, setActiveTab] = useState<DetailTab>(initialTab)
   const [isLogOpen, setIsLogOpen] = useState(false)
@@ -137,7 +140,7 @@ export function ProjectDetailView({
         </nav>
 
         <section className="dossier-tab-panel">
-          {activeTab === 'keeper' && <AgentPanel key={project.id} project={project} />}
+          {activeTab === 'keeper' && <AgentPanel key={`${project.id}:${initialAgentScenario}`} project={project} initialScenario={initialAgentScenario} />}
           {activeTab === 'overview' && (
             <div className="dossier-grid compact-dossier-grid">
               <div className="glass-panel">
