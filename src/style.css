@@ -2815,3 +2815,115 @@ p {
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== 种子世界（多房间农场） ===== */
+.world-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: radial-gradient(circle at 50% 40%, #0c1a12, #07100f 70%);
+}
+
+.world-stage canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.world-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 5;
+  text-align: center;
+  padding: 14px 22px;
+  border-radius: 14px;
+  background: rgba(12, 22, 16, 0.72);
+  border: 1px solid rgba(150, 220, 170, 0.18);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+.world-hint h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  color: #cfedd6;
+}
+
+.world-hint p {
+  margin: 0;
+  font-size: 13px;
+  color: #9fc4ab;
+}
+
+.room-topbar {
+  position: absolute;
+  top: 76px;
+  left: 20px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.room-title {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(12, 22, 16, 0.7);
+  border: 1px solid rgba(150, 220, 170, 0.16);
+}
+
+.room-title strong {
+  font-size: 15px;
+  color: #d8f0dd;
+}
+
+.room-title small {
+  font-size: 11px;
+  color: #8fb79a;
+}
+
+.agent-bark {
+  position: absolute;
+  left: 50%;
+  bottom: 30px;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(70vw, 520px);
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: rgba(20, 34, 26, 0.82);
+  border: 1px solid rgba(140, 230, 170, 0.3);
+  color: #e6f5ea;
+  font-size: 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+}
+
+.agent-bark-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #7be3a0;
+  box-shadow: 0 0 10px #7be3a0;
+  flex: 0 0 auto;
+}
+
+.agent-thinking {
+  position: absolute;
+  right: 22px;
+  bottom: 30px;
+  z-index: 6;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(30, 40, 60, 0.7);
+  border: 1px solid rgba(140, 170, 230, 0.25);
+  color: #bcd2f0;
+  font-size: 12px;
+}

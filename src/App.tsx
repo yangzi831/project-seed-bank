@@ -25,6 +25,7 @@ import { HomeView } from './views/HomeView'
 import { ListView } from './views/ListView'
 import { PlantLibraryView } from './views/PlantLibraryView'
 import { ProjectDetailView } from './views/ProjectDetailView'
+import { WorldView } from './views/WorldView'
 import { ZoneView } from './views/ZoneView'
 
 type Route =
@@ -33,6 +34,7 @@ type Route =
   | { name: 'board' }
   | { name: 'zone'; zoneId: ZoneKey }
   | { name: 'plantLibrary' }
+  | { name: 'world' }
 
 export function App() {
   const [state, setState] = useState<GardenState>(() => loadGardenState())
@@ -92,6 +94,7 @@ export function App() {
 
   const sceneMode: DungeonSceneMode = route.name === 'board' ? 'board' : route.name === 'list' || route.name === 'plantLibrary' ? 'archive' : route.name === 'zone' ? 'floor' : 'overview'
   const activeFloor = route.name === 'zone' ? state.zones.findIndex((zone) => zone.id === route.zoneId) : undefined
+  const isWorldRoute = route.name === 'world'
 
   function updateZone(zoneId: ZoneKey, patch: Partial<Pick<Zone, 'displayName' | 'description'>>) {
     setState((current) => ({
@@ -311,6 +314,7 @@ export function App() {
     goList: () => navigate({ name: 'list' }),
     goBoard: () => navigate({ name: 'board' }),
     goZone: (zoneId: ZoneKey) => navigate({ name: 'zone', zoneId }),
+    goWorld: () => navigate({ name: 'world' }),
     goProject: (projectId: string) => setSelectedProjectId(projectId),
   }
 
@@ -321,18 +325,20 @@ export function App() {
 
   return (
     <div className={`app-shell ${screenShake ? 'screen-shake' : ''}`}>
-      <DungeonBoardScene
-        mode={sceneMode}
-        activeFloor={activeFloor}
-        projects={state.projects}
-        players={game.players}
-        devilPosition={game.devilPosition}
-        devilEnraged={devilEnraged}
-        started={game.started}
-        onProjectOpen={nav.goProject}
-        onFloorSelect={openFloor}
-        onReady={() => setSceneReady(true)}
-      />
+      {!isWorldRoute && (
+        <DungeonBoardScene
+          mode={sceneMode}
+          activeFloor={activeFloor}
+          projects={state.projects}
+          players={game.players}
+          devilPosition={game.devilPosition}
+          devilEnraged={devilEnraged}
+          started={game.started}
+          onProjectOpen={nav.goProject}
+          onFloorSelect={openFloor}
+          onReady={() => setSceneReady(true)}
+        />
+      )}
       <div className="permanent-vignette" aria-hidden="true" />
       <div className="stone-grain" aria-hidden="true" />
       <TopNav
@@ -340,9 +346,12 @@ export function App() {
         onGarden={nav.goHome}
         onList={nav.goList}
         onBoard={nav.goBoard}
+        onWorld={nav.goWorld}
         onSettings={() => setShowAISettings(true)}
         sceneReady={sceneReady}
       />
+
+      {route.name === 'world' && <WorldView ownProjects={state.projects} onProjectOpen={nav.goProject} />}
 
       {route.name === 'home' && (
         <>
@@ -442,6 +451,7 @@ function parseRoute(pathname: string): Route {
   if (pathname === '/' || pathname === '/garden') return { name: 'home' }
   if (pathname === '/plants' || pathname === '/plant-library') return { name: 'list' }
   if (pathname === '/board') return { name: 'board' }
+  if (pathname === '/world' || pathname.startsWith('/room')) return { name: 'world' }
   if (pathname === '/dev/plant-library') return { name: 'plantLibrary' }
 
   const zoneMatch = pathname.match(/^\/garden\/([^/]+)$/)
@@ -453,6 +463,7 @@ function routeToPath(route: Route) {
   if (route.name === 'home') return '/garden'
   if (route.name === 'list') return '/plants'
   if (route.name === 'board') return '/board'
+  if (route.name === 'world') return '/world'
   if (route.name === 'plantLibrary') return '/dev/plant-library'
   return `/garden/${route.zoneId}`
 }

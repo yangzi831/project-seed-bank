@@ -1,7 +1,8 @@
 import type { AISettings } from './settings'
 import { loadAISettings } from './settings'
-import type { GardenerIntent, GardenerMessage, RefineSeedOutput, SummarizeGrowthOutput } from './types'
-import { gardenerSystemPrompt, refineSeedPrompt, summarizeGrowthPrompt } from './prompts'
+import type { AgentActionOutput, GardenerIntent, GardenerMessage, RefineSeedOutput, SummarizeGrowthOutput } from './types'
+import { AGENT_ACTIONS } from './types'
+import { decideAgentActionPrompt, gardenerSystemPrompt, refineSeedPrompt, summarizeGrowthPrompt } from './prompts'
 
 const AnthropicVersion = '2023-06-01'
 
@@ -43,6 +44,8 @@ function buildPromptForIntent(intent: GardenerIntent): string {
       return refineSeedPrompt()
     case 'summarizeGrowth':
       return summarizeGrowthPrompt()
+    case 'decideAgentAction':
+      return decideAgentActionPrompt()
     default:
       return ''
   }
@@ -152,6 +155,21 @@ export function assertSummarizeGrowthOutput(data: unknown): SummarizeGrowthOutpu
     obstacles: Array.isArray(d.obstacles) ? d.obstacles : [],
     nextSteps: Array.isArray(d.nextSteps) ? d.nextSteps : [],
     milestoneSuggestions: Array.isArray(d.milestoneSuggestions) ? d.milestoneSuggestions : [],
+  }
+}
+
+/** Agent 行为输出：action 硬校验（必须在封闭集合内），其余软默认。 */
+export function assertAgentActionOutput(data: unknown): AgentActionOutput {
+  const d = data as Partial<AgentActionOutput>
+  if (!d.action || !(AGENT_ACTIONS as readonly string[]).includes(d.action)) {
+    throw new GardenerError('AI 返回的行動不在允許範圍內')
+  }
+  return {
+    action: d.action,
+    targetId: typeof d.targetId === 'string' ? d.targetId : undefined,
+    dialogue: d.dialogue ?? '',
+    mood: d.mood ?? 'calm',
+    reason: d.reason ?? '',
   }
 }
 

@@ -3,11 +3,12 @@ type TopNavProps = {
   onGarden: () => void
   onList: () => void
   onBoard: () => void
+  onWorld?: () => void
   onSettings?: () => void
   sceneReady?: boolean
 }
 
-export function TopNav({ active, onGarden, onList, onBoard, onSettings, sceneReady = false }: TopNavProps) {
+export function TopNav({ active, onGarden, onList, onBoard, onWorld, onSettings, sceneReady = false }: TopNavProps) {
   return (
     <header className="top-nav">
       <button className="brand-mark" type="button" onClick={onGarden}>
@@ -27,6 +28,11 @@ export function TopNav({ active, onGarden, onList, onBoard, onSettings, sceneRea
         <button className={active === 'board' ? 'active' : ''} type="button" onClick={onBoard}>
           命运石板
         </button>
+        {onWorld && (
+          <button className={active === 'world' ? 'active' : ''} type="button" onClick={onWorld}>
+            种子世界
+          </button>
+        )}
       </nav>
       <div className="nav-utilities">
         <span className={`scene-status ${sceneReady ? 'is-ready' : ''}`}>

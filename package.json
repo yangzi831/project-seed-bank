@@ -16,6 +16,7 @@
     "@types/three": "^0.185.3",
     "@vitejs/plugin-react": "^4.7.0",
     "jsdom": "^29.1.1",
+    "playwright": "^1.57.0",
     "typescript": "~6.0.2",
     "vite": "^6.3.6",
     "vitest": "^4.1.10"
