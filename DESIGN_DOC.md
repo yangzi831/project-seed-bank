@@ -170,3 +170,19 @@ comments (
 | `src/data/garden.ts`（`GardenState`） | 本地结构不变；快照序列化时过滤私有字段（按公开范围定义） |
 
 **不回归清单**（沿用 `PROJECT_CONTEXT.md` 第 9 节）：桌面布局、Plants 页固定 24 植物图鉴、Board 页、概览无文字标签、单园项目标签、显式植物选择器、localStorage 持久化、GitHub Pages base 路径。
+
+---
+
+## 9. 分支整合记录（2026-08-02，用户拍板）
+
+三个分支已整合到 `ft/integration`（详见 git log）：`ft/backend/user`（本分支，社交+AI 服务端）+ `feature/ai-garden-keeper`（rebase）+ `feat/garden-understanding`（cherry-pick 独有资产：A2A 文档、SLICE-3、3D mockup、冒烟脚本）。
+
+与队友交接文档（`doc/HANDOFF-BACKEND-2026-08-01.md`、`doc/Project_Seed_Bank_AI_Garden_Keeper_Handoff.md`）存在三处分歧，**用户已拍板保持现状**：
+
+| 分歧 | 队友文档方案 | 用户决策 |
+|---|---|---|
+| 访客可见范围 | 脱敏（只给标题/状态/目标/里程碑/公开成果，不给日志） | **保持完整公开**（含日志/成果/里程碑） |
+| keeper 对话记忆 | 待办：多轮记忆 | **保持单轮**（不补） |
+| 主动发现（crossGardenScan/星标） | 产品愿景核心，待做 | **暂不做**，被动串门 + 留言即当前边界 |
+
+后续若队友实现 `crossGardenScan` 或脱敏逻辑，需以此决策为准进行合并。
