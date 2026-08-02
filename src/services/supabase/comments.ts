@@ -77,3 +77,10 @@ export async function markCommentsRead(gardenUserId: string): Promise<void> {
     { onConflict: 'user_id' },
   )
 }
+
+// 删除：园主删自己花园的 或 留言者删自己的（RLS 校验）
+export async function deleteComment(commentId: string): Promise<void> {
+  if (!supabase) return
+  const { error } = await supabase.from('comments').delete().eq('id', commentId)
+  if (error) throw new Error(error.message)
+}

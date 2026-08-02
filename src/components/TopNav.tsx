@@ -114,9 +114,9 @@ export function TopNav({
           </button>
         )}
         {profile ? (
-          <span className="top-nav-profile" title={`@${profile.handle}`}>
+          <button className="top-nav-profile" type="button" title={`查看我的公开档案 @${profile.handle}`} onClick={() => onVisit(profile.handle)}>
             {profile.nickname ?? profile.handle}
-          </span>
+          </button>
         ) : (
           sessionReady &&
           onClaim && (

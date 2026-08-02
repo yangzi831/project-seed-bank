@@ -5,7 +5,7 @@ import { getProfileByHandle } from '../services/supabase/profiles'
 import type { PublicProfile } from '../services/supabase/profiles'
 import { getGardenByUserId } from '../services/supabase/gardens'
 import type { PublicGarden } from '../services/supabase/gardens'
-import { addComment, getGardenComments, getProjectComments, markCommentsRead } from '../services/supabase/comments'
+import { addComment, deleteComment, getGardenComments, getProjectComments, markCommentsRead } from '../services/supabase/comments'
 import type { Comment } from '../services/supabase/comments'
 import { PlantSprite } from '../components/PlantSprite'
 
@@ -121,6 +121,23 @@ export function GardenProfileView({ handle, currentUserId, myProfile, onBack }: 
     } finally {
       setSubmitting(false)
     }
+  }
+
+  async function removeComment(commentId: string, projectId: string | null) {
+    try {
+      await deleteComment(commentId)
+      if (projectId) {
+        setProjectComments((cs) => cs.filter((c) => c.id !== commentId))
+      } else {
+        setComments((cs) => cs.filter((c) => c.id !== commentId))
+      }
+    } catch {
+      // 删除失败静默（RLS 拒绝时按钮本来就不应出现）
+    }
+  }
+
+  function canDelete(comment: Comment): boolean {
+    return isOwn || (Boolean(currentUserId) && comment.author_user_id === currentUserId)
   }
 
   async function submitProjectComment(e: React.FormEvent, projectId: string) {
@@ -259,6 +276,16 @@ export function GardenProfileView({ handle, currentUserId, myProfile, onBack }: 
                                     <span className="comment-author">{c.author_name}</span>
                                     <span className="comment-text">{c.text}</span>
                                     <span className="comment-time">{formatTime(c.created_at)}</span>
+                                    {canDelete(c) && (
+                                      <button
+                                        className="comment-delete"
+                                        type="button"
+                                        title="删除留言"
+                                        onClick={() => removeComment(c.id, project.id)}
+                                      >
+                                        ×
+                                      </button>
+                                    )}
                                   </li>
                                 ))}
                                 {projectComments.length === 0 && <li className="comment-empty">还没有留言</li>}
@@ -298,6 +325,16 @@ export function GardenProfileView({ handle, currentUserId, myProfile, onBack }: 
                 <span className="comment-author">{c.author_name}</span>
                 <span className="comment-text">{c.text}</span>
                 <span className="comment-time">{formatTime(c.created_at)}</span>
+                {canDelete(c) && (
+                  <button
+                    className="comment-delete"
+                    type="button"
+                    title="删除留言"
+                    onClick={() => removeComment(c.id, null)}
+                  >
+                    ×
+                  </button>
+                )}
               </li>
             ))}
             {comments.length === 0 && <li className="comment-empty">还没有人留过言</li>}

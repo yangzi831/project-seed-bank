@@ -1185,9 +1185,15 @@ p {
   padding: 0.5rem 0.75rem;
   border: 1px solid rgba(201, 232, 185, 0.3);
   border-radius: 8px;
+  background: transparent;
   color: rgba(234, 244, 226, 0.9);
   font-size: 0.9rem;
   white-space: nowrap;
+}
+
+.top-nav-profile:hover {
+  border-color: rgba(201, 232, 185, 0.55);
+  background: rgba(224, 241, 207, 0.1);
 }
 
 .top-nav-search {
@@ -1506,6 +1512,21 @@ p {
   padding: 0.45rem 0.6rem;
   color: rgba(234, 244, 226, 0.45);
   font-size: 0.85rem;
+}
+
+.comment-delete {
+  padding: 0 0.3rem;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: rgba(234, 244, 226, 0.4);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.comment-delete:hover {
+  color: #f2b8a6;
+  background: rgba(242, 184, 166, 0.12);
 }
 
 .comment-form {
@@ -3244,6 +3265,41 @@ p {
   .top-nav nav button {
     flex: 1;
     min-width: 0;
+  }
+
+  .top-nav-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .top-nav-search {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .top-nav-search input {
+    width: 100%;
+  }
+
+  .search-results {
+    width: 100%;
+  }
+
+  .comment-item {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .comment-time {
+    grid-column: 1 / -1;
+  }
+
+  .profile-panel {
+    padding: 16px;
+  }
+
+  .profile-project-title {
+    flex-wrap: wrap;
   }
 
   .page {
