@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { TopNav } from './components/TopNav'
-import { AISettingsPanel } from './components/AISettingsPanel'
 import { ClaimHandleModal } from './components/ClaimHandleModal'
+import { GardenerChatPanel } from './components/GardenerChatPanel'
 import { SeedRefiner } from './components/SeedRefiner'
 import {
   createMockProjects,
@@ -14,9 +14,8 @@ import {
 } from './data/garden'
 import type { GardenState, OutcomeType, PlantCategory, ProjectSeed, ProjectStatus, Zone, ZoneKey } from './data/garden'
 import { callGardener, assertRefineSeedOutput } from './services/ai/gardener'
-import { buildProjectContext } from './services/ai/context'
+import { buildGardenContext, buildProjectContext } from './services/ai/context'
 import type { RefineSeedOutput, SummarizeGrowthOutput } from './services/ai/types'
-import { loadAISettings, saveAISettings } from './services/ai/settings'
 import { useSupabaseSession } from './hooks/useSupabaseSession'
 import { getMyProfile } from './services/supabase/profiles'
 import type { PublicProfile } from './services/supabase/profiles'
@@ -41,13 +40,13 @@ export function App() {
   const [state, setState] = useState<GardenState>(() => loadGardenState())
   const [route, setRoute] = useState<Route>(() => parseRoute(getAppPathname()))
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
-  const [aiSettings, setAISettings] = useState(() => loadAISettings())
-  const [showAISettings, setShowAISettings] = useState(false)
   const [seedRefiner, setSeedRefiner] = useState<{ open: boolean; initialIdea: string }>({ open: false, initialIdea: '' })
   const { user, status: sessionStatus } = useSupabaseSession()
   const [profile, setProfile] = useState<PublicProfile | null>(null)
   const [showClaim, setShowClaim] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [gardenerOpen, setGardenerOpen] = useState(false)
+  const [gardenerProjectContext, setGardenerProjectContext] = useState<string | null>(null)
   const syncTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -129,6 +128,24 @@ export function App() {
     if (!selectedProjectId) return undefined
     return state.projects.find((project) => project.id === selectedProjectId)
   }, [selectedProjectId, state.projects])
+
+  const gardenContext = useMemo(() => buildGardenContext(state), [state])
+
+  function buildFullGardenContext(): string {
+    return state.projects
+      .map((project) => `## ${project.title}\n${buildProjectContext(project)}`)
+      .join('\n\n---\n\n')
+  }
+
+  function openGardenerChat(projectId?: string) {
+    if (projectId) {
+      const project = state.projects.find((p) => p.id === projectId)
+      setGardenerProjectContext(project ? buildProjectContext(project) : null)
+    } else {
+      setGardenerProjectContext(null)
+    }
+    setGardenerOpen(true)
+  }
 
   function updateZone(zoneId: ZoneKey, patch: Partial<Pick<Zone, 'displayName' | 'description'>>) {
     setState((current) => ({
@@ -299,7 +316,6 @@ export function App() {
         onGarden={nav.goHome}
         onList={nav.goList}
         onBoard={nav.goBoard}
-        onSettings={() => setShowAISettings(true)}
         profile={profile ? { handle: profile.handle, nickname: profile.nickname } : null}
         sessionReady={sessionStatus === 'ready'}
         onClaim={() => setShowClaim(true)}
@@ -378,16 +394,7 @@ export function App() {
           onAdvance={advanceProject}
           onDeleteProject={deleteProject}
           onAskGardener={(projectId) => summarizeProject(projectId)}
-        />
-      )}
-      {showAISettings && (
-        <AISettingsPanel
-          settings={aiSettings}
-          onChange={(settings) => {
-            setAISettings(settings)
-            saveAISettings(settings)
-          }}
-          onClose={() => setShowAISettings(false)}
+          onChatGardener={(projectId) => openGardenerChat(projectId)}
         />
       )}
       {seedRefiner.open && (
@@ -408,6 +415,15 @@ export function App() {
           onClose={() => setShowClaim(false)}
         />
       )}
+      <GardenerChatPanel
+        open={gardenerOpen}
+        onOpen={() => setGardenerOpen(true)}
+        onClose={() => setGardenerOpen(false)}
+        gardenContext={gardenContext}
+        buildFullContext={buildFullGardenContext}
+        projectContext={gardenerProjectContext}
+        onProjectContextConsumed={() => setGardenerProjectContext(null)}
+      />
     </div>
   )
 }

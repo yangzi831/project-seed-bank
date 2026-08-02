@@ -18,6 +18,7 @@ type ProjectDetailViewProps = {
   onAdvance: (project: ProjectSeed) => void
   onDeleteProject: (projectId: string) => void
   onAskGardener?: (projectId: string) => void
+  onChatGardener?: (projectId: string) => void
 }
 
 export function ProjectDetailView({
@@ -30,6 +31,7 @@ export function ProjectDetailView({
   onAdvance,
   onDeleteProject,
   onAskGardener,
+  onChatGardener,
 }: ProjectDetailViewProps) {
   const [activeTab, setActiveTab] = useState<DetailTab>('overview')
   const [isLogOpen, setIsLogOpen] = useState(false)
@@ -340,6 +342,11 @@ export function ProjectDetailView({
                 {onAskGardener && (
                   <button type="button" onClick={() => onAskGardener(project.id)}>
                     请园丁整理
+                  </button>
+                )}
+                {onChatGardener && (
+                  <button type="button" onClick={() => onChatGardener(project.id)}>
+                    去和园丁聊聊
                   </button>
                 )}
               </div>

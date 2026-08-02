@@ -9,7 +9,6 @@ type TopNavProps = {
   onGarden: () => void
   onList: () => void
   onBoard: () => void
-  onSettings?: () => void
   profile?: TopNavProfile
   sessionReady?: boolean
   onClaim?: () => void
@@ -23,7 +22,6 @@ export function TopNav({
   onGarden,
   onList,
   onBoard,
-  onSettings,
   profile,
   sessionReady,
   onClaim,
@@ -126,11 +124,6 @@ export function TopNav({
               认领用户名
             </button>
           )
-        )}
-        {onSettings && (
-          <button className="ghost-button" type="button" onClick={onSettings} title="AI 设置">
-            ⚙️
-          </button>
         )}
       </div>
     </header>

@@ -1,14 +1,13 @@
-import type { AISettings } from './settings'
-import { loadAISettings } from './settings'
+import { supabase } from '../supabase/client'
 import type { GardenerIntent, GardenerMessage, RefineSeedOutput, SummarizeGrowthOutput } from './types'
-import { gardenerSystemPrompt, refineSeedPrompt, summarizeGrowthPrompt } from './prompts'
-
-const AnthropicVersion = '2023-06-01'
+import { gardenerSystemPrompt, refineSeedPrompt, summarizeGrowthPrompt, gardenerChatPrompt } from './prompts'
 
 export type CallOptions = {
   intent: GardenerIntent
   messages: GardenerMessage[]
   system?: string
+  /** 花园/项目上下文：注入为请求首条 user 消息（不进入对话历史） */
+  context?: string
 }
 
 export class GardenerError extends Error {
@@ -20,21 +19,54 @@ export class GardenerError extends Error {
   }
 }
 
+// 统一走 Edge Function（服务端持有 LLM key，客户端不接触密钥）
 export async function callGardener(options: CallOptions): Promise<unknown> {
-  const settings = loadAISettings()
-  if (!settings.enabled) {
-    throw new GardenerError('AI 功能尚未启用')
+  if (!supabase) {
+    throw new GardenerError('AI 服务尚未配置（缺少 Supabase 环境变量）')
   }
 
-  if (!settings.apiKey) {
-    throw new GardenerError('请在设置中输入 API Key')
-  }
-
-  const system = options.system ?? gardenerSystemPrompt
+  const system = options.system ?? buildSystemForIntent(options.intent)
   const promptContent = buildPromptForIntent(options.intent)
+  const contextLine = options.context ? `以下是你需要了解的花园现状（供参考，无需复述）：\n${options.context}\n\n` : ''
+  const messages: GardenerMessage[] = [
+    ...(contextLine ? [{ role: 'user' as const, content: contextLine }] : []),
+    ...(promptContent ? [{ role: 'user' as const, content: promptContent }] : []),
+    ...options.messages.map((m) => ({ role: m.role === 'system' ? ('user' as const) : m.role, content: m.content })),
+  ]
 
-  const response = await fetchLLM(settings, system, promptContent, options.messages)
-  return parseJsonFromResponse(response)
+  const { data, error } = await supabase.functions.invoke('gardener', {
+    body: { intent: options.intent, system, messages },
+  })
+
+  if (error) {
+    // 透传 Edge Function 返回的具体错误（如 LLM 配额不足）
+    let detail = error.message
+    try {
+      const context = (error as { context?: Response }).context
+      if (context) {
+        const body = (await context.json()) as { error?: string }
+        if (body?.error) detail = body.error
+      }
+    } catch {
+      // 解析失败则保留默认信息
+    }
+    throw new GardenerError(`园丁服务调用失败: ${detail}`)
+  }
+
+  const text = (data as { text?: string } | null)?.text ?? ''
+  if (!text) {
+    throw new GardenerError('园丁没有返回内容')
+  }
+
+  if (options.intent === 'chat') {
+    return text
+  }
+  return parseJsonFromResponse(text)
+}
+
+function buildSystemForIntent(intent: GardenerIntent): string {
+  if (intent === 'chat') return gardenerChatPrompt()
+  return gardenerSystemPrompt
 }
 
 function buildPromptForIntent(intent: GardenerIntent): string {
@@ -46,75 +78,6 @@ function buildPromptForIntent(intent: GardenerIntent): string {
     default:
       return ''
   }
-}
-
-async function fetchLLM(
-  settings: AISettings,
-  system: string,
-  promptContent: string,
-  messages: GardenerMessage[],
-): Promise<string> {
-  const baseUrl = settings.baseUrl?.replace(/\/+$/, '') ?? ''
-
-  if (settings.provider === 'anthropic') {
-    const url = `${baseUrl}/v1/messages`
-    const body = {
-      model: settings.model,
-      max_tokens: settings.maxTokens,
-      system: system,
-      messages: [
-        { role: 'user', content: promptContent },
-        ...messages.map((m) => ({ role: m.role, content: m.content })),
-      ],
-    }
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': settings.apiKey!,
-        'anthropic-version': AnthropicVersion,
-      },
-      body: JSON.stringify(body),
-    })
-
-    if (!response.ok) {
-      const error = await response.text()
-      throw new GardenerError(`LLM API 请求失败: ${response.status} ${error}`)
-    }
-
-    const data = (await response.json()) as AnthropicResponse
-    return data.content?.[0]?.text ?? ''
-  }
-
-  const url = settings.provider === 'openrouter' ? `${baseUrl}/chat/completions` : `${baseUrl}/v1/chat/completions`
-  const body = {
-    model: settings.model,
-    max_tokens: settings.maxTokens,
-    temperature: settings.temperature,
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: promptContent },
-      ...messages.map((m) => ({ role: m.role, content: m.content })),
-    ],
-  }
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${settings.apiKey}`,
-    },
-    body: JSON.stringify(body),
-  })
-
-  if (!response.ok) {
-    const error = await response.text()
-    throw new GardenerError(`LLM API 请求失败: ${response.status} ${error}`)
-  }
-
-  const data = (await response.json()) as OpenAIResponse
-  return data.choices?.[0]?.message?.content ?? ''
 }
 
 function parseJsonFromResponse(text: string): unknown {
@@ -153,12 +116,4 @@ export function assertSummarizeGrowthOutput(data: unknown): SummarizeGrowthOutpu
     nextSteps: Array.isArray(d.nextSteps) ? d.nextSteps : [],
     milestoneSuggestions: Array.isArray(d.milestoneSuggestions) ? d.milestoneSuggestions : [],
   }
-}
-
-type AnthropicResponse = {
-  content?: Array<{ type: string; text: string }>
-}
-
-type OpenAIResponse = {
-  choices?: Array<{ message?: { content?: string } }>
 }

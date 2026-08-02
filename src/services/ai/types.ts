@@ -29,7 +29,7 @@ export type SuggestWakeOutput = {
   recommendedStatus: ProjectStatus
 }
 
-export type GardenerIntent = 'refineSeed' | 'summarizeGrowth' | 'generateHarvest' | 'suggestWake'
+export type GardenerIntent = 'refineSeed' | 'summarizeGrowth' | 'generateHarvest' | 'suggestWake' | 'chat'
 
 export type GardenerMessage = {
   role: 'system' | 'user' | 'assistant'
