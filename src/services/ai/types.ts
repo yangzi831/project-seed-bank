@@ -29,25 +29,9 @@ export type SuggestWakeOutput = {
   recommendedStatus: ProjectStatus
 }
 
-export type GardenerIntent = 'refineSeed' | 'summarizeGrowth' | 'generateHarvest' | 'suggestWake' | 'decideAgentAction'
+export type GardenerIntent = 'refineSeed' | 'summarizeGrowth' | 'generateHarvest' | 'suggestWake' | 'chat'
 
 export type GardenerMessage = {
   role: 'system' | 'user' | 'assistant'
   content: string
-}
-
-/** Agent 角色可执行的封闭动作集合。LLM 只能从这里选，防止幻觉动作崩溃行为状态机。 */
-export const AGENT_ACTIONS = ['idle', 'walk', 'gesture', 'speak', 'tendCrop', 'moveToProject', 'goToPortal'] as const
-export type AgentAction = (typeof AGENT_ACTIONS)[number]
-
-export type AgentActionOutput = {
-  action: AgentAction
-  /** 目标 id（地块 / 项目 / 传送门），按 action 而定。 */
-  targetId?: string
-  /** Agent 说的话（气泡 bark）。 */
-  dialogue?: string
-  /** 情绪，驱动动画状态。 */
-  mood?: string
-  /** 决策理由（调试/日志用）。 */
-  reason?: string
 }

@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { TopNav } from './components/TopNav'
-import { AISettingsPanel } from './components/AISettingsPanel'
-import { KeeperSelection } from './components/KeeperSelection'
-import { GlobalGardenKeeper } from './components/GlobalGardenKeeper'
-import { GardenKeeperPortal } from './components/GardenKeeperPortal'
+import { ClaimHandleModal } from './components/ClaimHandleModal'
+import { GardenerChatPanel } from './components/GardenerChatPanel'
 import { SeedRefiner } from './components/SeedRefiner'
 import {
   createMockProjects,
@@ -15,14 +13,16 @@ import {
   saveGardenState,
 } from './data/garden'
 import type { GardenState, OutcomeType, PlantCategory, ProjectSeed, ProjectStatus, Zone, ZoneKey } from './data/garden'
-import { createAgentContext, createGardenAgentContext } from './agent/context'
-import { requestGardenKeeper } from './agent/service'
-import type { AgentScenario, AgentSeedDraft } from './agent/types'
-import type { DemoSeedDraft } from './agent/demoConversation'
-import { loadSelectedKeeper, saveSelectedKeeper } from './data/keepers'
-import type { GardenKeeper } from './data/keepers'
-import { loadAISettings, saveAISettings } from './services/ai/settings'
+import { callGardener, assertRefineSeedOutput } from './services/ai/gardener'
+import { buildGardenContext, buildProjectContext } from './services/ai/context'
+import type { RefineSeedOutput, SummarizeGrowthOutput } from './services/ai/types'
+import { useSupabaseSession } from './hooks/useSupabaseSession'
+import { getMyProfile } from './services/supabase/profiles'
+import type { PublicProfile } from './services/supabase/profiles'
+import { syncGardenSnapshot } from './services/supabase/gardens'
+import { getUnreadCommentCount } from './services/supabase/comments'
 import { HomeView } from './views/HomeView'
+import { GardenProfileView } from './views/GardenProfileView'
 import { ListView } from './views/ListView'
 import { PlantLibraryView } from './views/PlantLibraryView'
 import { ProjectDetailView } from './views/ProjectDetailView'
@@ -34,19 +34,20 @@ type Route =
   | { name: 'board' }
   | { name: 'zone'; zoneId: ZoneKey }
   | { name: 'plantLibrary' }
+  | { name: 'profile'; handle: string }
 
 export function App() {
   const [state, setState] = useState<GardenState>(() => loadGardenState())
   const [route, setRoute] = useState<Route>(() => parseRoute(getAppPathname()))
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
-  const [selectedProjectTab, setSelectedProjectTab] = useState<'overview' | 'keeper'>('overview')
-  const [selectedAgentScenario, setSelectedAgentScenario] = useState<AgentScenario>('growth-companion')
-  const [selectedKeeper, setSelectedKeeper] = useState<GardenKeeper>(() => loadSelectedKeeper())
-  const [showKeeperSelection, setShowKeeperSelection] = useState(false)
-  const [showKeeperPortal, setShowKeeperPortal] = useState(false)
-  const [aiSettings, setAISettings] = useState(() => loadAISettings())
-  const [showAISettings, setShowAISettings] = useState(false)
   const [seedRefiner, setSeedRefiner] = useState<{ open: boolean; initialIdea: string }>({ open: false, initialIdea: '' })
+  const { user, status: sessionStatus } = useSupabaseSession()
+  const [profile, setProfile] = useState<PublicProfile | null>(null)
+  const [showClaim, setShowClaim] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [gardenerOpen, setGardenerOpen] = useState(false)
+  const [gardenerProjectContext, setGardenerProjectContext] = useState<string | null>(null)
+  const syncTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     const nextPath = withBasePath(routeToPath(route))
@@ -63,6 +64,61 @@ export function App() {
     saveGardenState(state)
   }, [state])
 
+  useEffect(() => {
+    if (!user) {
+      setProfile(null)
+      return
+    }
+    let cancelled = false
+    getMyProfile(user.id)
+      .then((p) => {
+        if (!cancelled) setProfile(p)
+      })
+      .catch(() => {
+        if (!cancelled) setProfile(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  // 公开快照防抖推送（本地为源）
+  useEffect(() => {
+    if (!user || sessionStatus !== 'ready') return
+    const userId = user.id
+    if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current)
+    syncTimerRef.current = window.setTimeout(() => {
+      void syncGardenSnapshot(userId, state)
+    }, 2000)
+    return () => {
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current)
+    }
+  }, [state, user, sessionStatus])
+
+  // 铃铛未读数轮询
+  useEffect(() => {
+    if (!user || sessionStatus !== 'ready') {
+      setUnreadCount(0)
+      return
+    }
+    const userId = user.id
+    let cancelled = false
+    async function poll() {
+      try {
+        const count = await getUnreadCommentCount(userId)
+        if (!cancelled) setUnreadCount(count)
+      } catch {
+        // 轮询失败静默
+      }
+    }
+    void poll()
+    const timer = window.setInterval(() => void poll(), 45000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [user, sessionStatus])
+
   const currentZone = useMemo(() => {
     if (route.name !== 'zone') return undefined
     return state.zones.find((zone) => zone.id === route.zoneId)
@@ -73,20 +129,23 @@ export function App() {
     return state.projects.find((project) => project.id === selectedProjectId)
   }, [selectedProjectId, state.projects])
 
-  const keeperChatContext = useMemo(() => {
-    const focusProject = currentProject ?? [...state.projects]
-      .filter((project) => route.name !== 'zone' || project.zoneId === route.zoneId)
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0]
-    const focusZone = state.zones.find((zone) => zone.id === focusProject?.zoneId) ?? currentZone
-    const gardenProjects = focusZone
-      ? state.projects.filter((project) => project.zoneId === focusZone.id)
-      : state.projects
+  const gardenContext = useMemo(() => buildGardenContext(state), [state])
 
-    return createGardenAgentContext(
-      { projects: gardenProjects },
-      { keeper: selectedKeeper, project: focusProject, zone: focusZone },
-    )
-  }, [currentProject, currentZone, route, selectedKeeper, state.projects, state.zones])
+  function buildFullGardenContext(): string {
+    return state.projects
+      .map((project) => `## ${project.title}\n${buildProjectContext(project)}`)
+      .join('\n\n---\n\n')
+  }
+
+  function openGardenerChat(projectId?: string) {
+    if (projectId) {
+      const project = state.projects.find((p) => p.id === projectId)
+      setGardenerProjectContext(project ? buildProjectContext(project) : null)
+    } else {
+      setGardenerProjectContext(null)
+    }
+    setGardenerOpen(true)
+  }
 
   function updateZone(zoneId: ZoneKey, patch: Partial<Pick<Zone, 'displayName' | 'description'>>) {
     setState((current) => ({
@@ -175,29 +234,30 @@ export function App() {
   }
 
   async function refineSeed(messages: { role: 'user' | 'assistant'; content: string }[]): Promise<unknown> {
-    const response = await requestGardenKeeper({
-      scenario: 'seed-discovery',
-      message: messages[messages.length - 1]?.content ?? '',
-      context: createGardenAgentContext(state),
+    const context = state.projects.slice(0, 5).map((p) => `項目：${p.title}，狀態：${p.status}，區域：${p.zoneId}`).join('\n')
+    const response = await callGardener({
+      intent: 'refineSeed',
+      messages: [
+        { role: 'user', content: `現有專案參考：\n${context}\n\n` + messages[messages.length - 1].content },
+      ],
     })
-    if (!response.suggestion.seedDraft) throw new Error('园丁没有返回可应用的项目种子')
-    return response.suggestion.seedDraft
+    return assertRefineSeedOutput(response)
   }
 
   async function summarizeProject(projectId: string) {
     const project = state.projects.find((p) => p.id === projectId)
     if (!project) return
 
-    const response = await requestGardenKeeper({
-      scenario: 'growth-companion',
-      message: '整理这个项目目前的成长轨迹，并提出下一步。',
-      context: createAgentContext(project),
+    const response = await callGardener({
+      intent: 'summarizeGrowth',
+      messages: [{ role: 'user', content: buildProjectContext(project) }],
     })
+    const summary = response as SummarizeGrowthOutput
     updateProject(projectId, {
       aiSummary: {
-        summary: response.suggestion.summary,
-        obstacles: response.suggestion.obstacles ?? [],
-        nextSteps: response.suggestion.points,
+        summary: summary.summary,
+        obstacles: summary.obstacles,
+        nextSteps: summary.nextSteps,
         logHash: project.logs.map((l) => l.text).join(''),
         updatedAt: new Date().toISOString(),
         version: 1,
@@ -205,7 +265,7 @@ export function App() {
     })
   }
 
-  function applyRefinedSeed(output: AgentSeedDraft) {
+  function applyRefinedSeed(output: RefineSeedOutput) {
     const project = createProjectSeed({
       zoneId: output.zoneId,
       title: output.title,
@@ -232,25 +292,13 @@ export function App() {
     setSeedRefiner({ open: false, initialIdea: '' })
   }
 
-  function selectKeeper(keeper: GardenKeeper) {
-    setSelectedKeeper(keeper)
-    saveSelectedKeeper(keeper.id)
-  }
-
   const nav = {
     goHome: () => navigate({ name: 'home' }),
     goList: () => navigate({ name: 'list' }),
     goBoard: () => navigate({ name: 'board' }),
     goZone: (zoneId: ZoneKey) => navigate({ name: 'zone', zoneId }),
-    goProject: (projectId: string) => {
-      setSelectedProjectTab('overview')
-      setSelectedProjectId(projectId)
-    },
-    goKeeper: (projectId: string, scenario: AgentScenario = 'growth-companion') => {
-      setSelectedProjectTab('keeper')
-      setSelectedAgentScenario(scenario)
-      setSelectedProjectId(projectId)
-    },
+    goProject: (projectId: string) => setSelectedProjectId(projectId),
+    goProfile: (handle: string) => navigate({ name: 'profile', handle }),
   }
 
   function navigate(nextRoute: Route) {
@@ -263,21 +311,21 @@ export function App() {
 
   return (
     <div className="app-shell">
-      <TopNav active={route.name} onGarden={nav.goHome} onList={nav.goList} onBoard={nav.goBoard} onSettings={() => setShowAISettings(true)} />
-      {selectedKeeper && !showKeeperSelection && !showKeeperPortal && (route.name === 'home' || route.name === 'zone' || Boolean(currentProject)) && (
-        <GlobalGardenKeeper
-          keeper={selectedKeeper}
-          context={keeperChatContext}
-          onPlantSeed={(draft: DemoSeedDraft) => addProject(
-            draft.zoneId,
-            draft.projectName,
-            draft.description,
-            draft.plantCategory,
-          )}
-          onChangeKeeper={() => setShowKeeperSelection(true)}
-          onOpenCottage={() => setShowKeeperPortal(true)}
-        />
-      )}
+      <TopNav
+        active={route.name}
+        onGarden={nav.goHome}
+        onList={nav.goList}
+        onBoard={nav.goBoard}
+        profile={profile ? { handle: profile.handle, nickname: profile.nickname } : null}
+        sessionReady={sessionStatus === 'ready'}
+        onClaim={() => setShowClaim(true)}
+        onVisit={(handle) => nav.goProfile(handle)}
+        unreadCount={unreadCount}
+        onBell={profile ? () => {
+          setUnreadCount(0)
+          nav.goProfile(profile.handle)
+        } : undefined}
+      />
       {route.name === 'home' && (
         <HomeView
           zones={state.zones}
@@ -310,6 +358,14 @@ export function App() {
         />
       )}
       {route.name === 'plantLibrary' && <PlantLibraryView />}
+      {route.name === 'profile' && (
+        <GardenProfileView
+          handle={route.handle}
+          currentUserId={user?.id ?? null}
+          myProfile={profile}
+          onBack={nav.goHome}
+        />
+      )}
       {route.name === 'zone' && currentZone && (
         <ZoneView
           zone={currentZone}
@@ -338,18 +394,7 @@ export function App() {
           onAdvance={advanceProject}
           onDeleteProject={deleteProject}
           onAskGardener={(projectId) => summarizeProject(projectId)}
-          initialTab={selectedProjectTab}
-          initialAgentScenario={selectedAgentScenario}
-        />
-      )}
-      {showAISettings && (
-        <AISettingsPanel
-          settings={aiSettings}
-          onChange={(settings) => {
-            setAISettings(settings)
-            saveAISettings(settings)
-          }}
-          onClose={() => setShowAISettings(false)}
+          onChatGardener={(projectId) => openGardenerChat(projectId)}
         />
       )}
       {seedRefiner.open && (
@@ -360,39 +405,25 @@ export function App() {
           onRefine={refineSeed}
         />
       )}
-      {showKeeperSelection && (
-        <div className="modal-scrim keeper-selection-scrim" role="presentation" onMouseDown={() => setShowKeeperSelection(false)}>
-          <div className="keeper-selection-dialog" onMouseDown={(event) => event.stopPropagation()}>
-            <KeeperSelection
-              initialKeeperId={selectedKeeper.id}
-              onConfirm={(keeper) => {
-                selectKeeper(keeper)
-                setShowKeeperSelection(false)
-              }}
-              onCancel={() => setShowKeeperSelection(false)}
-            />
-          </div>
-        </div>
-      )}
-      {showKeeperPortal && (
-        <GardenKeeperPortal
-          projects={state.projects}
-          keeper={selectedKeeper}
-          onChangeKeeper={() => {
-            setShowKeeperPortal(false)
-            setShowKeeperSelection(true)
+      {showClaim && user && (
+        <ClaimHandleModal
+          userId={user.id}
+          onClaimed={(p) => {
+            setProfile(p)
+            setShowClaim(false)
           }}
-          onOpenProject={(projectId) => {
-            setShowKeeperPortal(false)
-            nav.goProject(projectId)
-          }}
-          onStartFlow={(projectId, scenario) => {
-            setShowKeeperPortal(false)
-            nav.goKeeper(projectId, scenario)
-          }}
-          onClose={() => setShowKeeperPortal(false)}
+          onClose={() => setShowClaim(false)}
         />
       )}
+      <GardenerChatPanel
+        open={gardenerOpen}
+        onOpen={() => setGardenerOpen(true)}
+        onClose={() => setGardenerOpen(false)}
+        gardenContext={gardenContext}
+        buildFullContext={buildFullGardenContext}
+        projectContext={gardenerProjectContext}
+        onProjectContextConsumed={() => setGardenerProjectContext(null)}
+      />
     </div>
   )
 }
@@ -419,6 +450,11 @@ function parseRoute(pathname: string): Route {
     return { name: 'zone', zoneId: zoneMatch[1] }
   }
 
+  const profileMatch = pathname.match(/^\/u\/([a-z0-9_]+)$/)
+  if (profileMatch) {
+    return { name: 'profile', handle: profileMatch[1] }
+  }
+
   return { name: 'home' }
 }
 
@@ -427,6 +463,7 @@ function routeToPath(route: Route) {
   if (route.name === 'list') return '/plants'
   if (route.name === 'board') return '/board'
   if (route.name === 'plantLibrary') return '/dev/plant-library'
+  if (route.name === 'profile') return `/u/${route.handle}`
   return `/garden/${route.zoneId}`
 }
 
