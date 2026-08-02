@@ -209,7 +209,7 @@ export function GardenKeeperChatPanel({ keeper, context, onOpenCottage, onChange
         </form>
 
         <footer className="keeper-chat-footer">
-          <span>没有 API Key 时会自动使用本地园丁回应。</span>
+          <span>AI 由花园统一提供；离线时自动使用本地园丁回应。</span>
           <div>
             {onChangeKeeper && <button type="button" className="ghost-button" onClick={onChangeKeeper}>更换园丁</button>}
             {onOpenCottage && <button type="button" className="ghost-button" onClick={onOpenCottage}>进入园丁小屋 →</button>}
