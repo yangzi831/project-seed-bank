@@ -98,19 +98,20 @@ export function HomeView({ zones, projects, onOpenZone, onOpenProject, onAddProj
       <section className="workbench-grid garden-workbench">
         <aside className="workbench-sidebar left-sidebar">
           <div className="glass-panel sidebar-section">
-            <p className="eyebrow">Personal project cultivation field</p>
             <h1>Project Seed Bank</h1>
-            <p>把灵感种进一座有秩序的创意庄园，观察它们生长、成熟、休眠与收获。</p>
+            <p className="home-product-identity">AI 灵感庄园</p>
+            <p className="home-product-promise">让每一个想法，都拥有继续生长的空间。</p>
+            <p className="home-product-description">记录、培养和重新发现你的创意项目。</p>
           </div>
 
           <section className="glass-panel sidebar-section" aria-label="Garden statistics">
-            <p className="eyebrow">Garden signal</p>
+            <p className="eyebrow">庄园状态</p>
             <div className="sidebar-stats">
-              <Stat label="Total" value={summary.total} />
-              <Stat label="Growing" value={summary.growing} />
-              <Stat label="Mature" value={summary.mature} />
-              <Stat label="Dormant" value={summary.dormant} />
-              <Stat label="Harvested" value={summary.harvested} />
+              <Stat label="总数" value={summary.total} />
+              <Stat label="生长中" value={summary.growing} />
+              <Stat label="长成" value={summary.mature} />
+              <Stat label="休眠" value={summary.dormant} />
+              <Stat label="已收获" value={summary.harvested} />
             </div>
             <span className="recent-update compact">最近更新：{recentlyUpdated?.title ?? '暂无项目'}</span>
           </section>

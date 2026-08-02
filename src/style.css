@@ -1041,6 +1041,17 @@ button:hover {
   margin-bottom: 0;
 }
 
+.home-product-identity {
+  margin: -0.25rem 0 0;
+  color: #c9e8ba;
+  font-family: Georgia, serif;
+  font-size: 1.08rem;
+  letter-spacing: 0.08em;
+}
+
+.home-product-promise { margin: 0; color: rgba(242, 250, 237, 0.88); font-size: 0.92rem; line-height: 1.6; }
+.home-product-description { margin: -0.35rem 0 0; color: rgba(222, 239, 214, 0.58); font-size: 0.78rem; line-height: 1.55; }
+
 .toolbar-hint {
   display: block;
   margin-top: 0.22rem;
