@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>庄园星系 · 3D Remix</title>
+  <style>
+    :root { color:#f5f7ef; background:#02050a; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    * { box-sizing:border-box; }
+    html,body { width:100%; height:100%; margin:0; overflow:hidden; }
+    body { min-width:320px; background:#02050a; }
+    button { font:inherit; }
+    .galaxy-app { position:relative; width:100%; height:100%; overflow:hidden; isolation:isolate; background:radial-gradient(circle at 52% 46%,#11101a 0,#050509 42%,#010102 100%); }
+    #galaxy-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+    .vignette { position:absolute; inset:0; z-index:2; pointer-events:none; background:linear-gradient(180deg,rgba(0,2,8,.1),transparent 28%,rgba(0,2,7,.2)); box-shadow:inset 0 0 170px rgba(0,0,0,.68); }
+    .topbar { position:absolute; top:18px; left:20px; right:20px; z-index:20; display:flex; align-items:center; justify-content:space-between; gap:1rem; min-height:64px; padding:10px 14px; border:1px solid rgba(242,214,131,.27); border-radius:8px; background:rgba(3,7,11,.74); box-shadow:0 18px 54px rgba(0,0,0,.34); backdrop-filter:blur(18px); }
+    .brand { display:flex; align-items:center; gap:.8rem; }
+    .brand-mark { position:relative; display:grid; place-items:center; width:40px; height:40px; border:1px solid rgba(242,195,82,.46); border-radius:50%; color:#f6d886; background:rgba(219,164,48,.08); box-shadow:0 0 24px rgba(227,175,54,.13); }
+    .brand-mark::before { content:"✦"; }
+    .brand-mark::after { content:""; position:absolute; inset:7px; border:1px solid rgba(245,216,136,.22); border-radius:50%; transform:rotateX(68deg); }
+    .brand-copy { display:grid; gap:2px; }
+    .brand-copy small,.stats,.detail-panel small,.legend,.node-label small { color:rgba(239,241,230,.62); }
+    h1,h2,p { margin:0; }
+    h1 { font-size:1.08rem; }
+    .stats { display:flex; align-items:center; gap:1.2rem; font-size:.75rem; }
+    .stats b { color:#f7f6ec; }
+    .live-dot { display:inline-block; width:7px; height:7px; margin-right:6px; border-radius:50%; background:#f8d36c; box-shadow:0 0 12px rgba(248,211,108,.86); }
+    .node-label { position:absolute; z-index:12; display:grid; justify-items:center; min-width:126px; transform:translate(-50%,16px); pointer-events:none; opacity:1; transition:opacity 180ms ease,transform 180ms ease; }
+    .node-label-copy { position:relative; display:grid; gap:2px; min-width:126px; padding:7px 9px; border:1px solid rgba(225,238,217,.17); border-radius:6px; text-align:center; background:rgba(3,8,12,.8); box-shadow:0 10px 30px rgba(0,0,0,.35); backdrop-filter:blur(12px); }
+    .node-label strong { font-size:.77rem; }
+    .node-label small { font-size:.63rem; }
+    .node-label[data-discovery="true"] .node-label-copy::after { content:"新线索"; position:absolute; top:-9px; right:4px; padding:2px 6px; border:1px solid rgba(247,204,90,.42); border-radius:999px; color:#ffe9a6; background:rgba(64,43,10,.9); font-size:.57rem; }
+    .node-label.selected .node-label-copy { border-color:rgba(255,222,128,.55); box-shadow:0 0 28px rgba(242,196,80,.18),0 12px 32px rgba(0,0,0,.4); }
+    .node-label.hidden { opacity:0; transform:translate(-50%,24px); }
+    .detail-panel { position:absolute; right:24px; bottom:24px; z-index:20; display:grid; gap:13px; width:min(380px,calc(100% - 48px)); padding:17px; border:1px solid rgba(239,213,140,.25); border-radius:8px; background:rgba(3,8,12,.84); box-shadow:0 24px 86px rgba(0,0,0,.5); backdrop-filter:blur(22px); }
+    .detail-head { display:flex; align-items:start; justify-content:space-between; gap:1rem; }
+    .detail-panel h2 { margin-top:3px; font-size:1.17rem; }
+    .detail-panel p { color:rgba(240,242,232,.78); font-size:.82rem; line-height:1.55; }
+    .arrival { padding:9px 10px; border-left:2px solid rgba(246,207,103,.72); color:rgba(245,242,225,.75); background:rgba(246,207,103,.06); font-size:.72rem; line-height:1.45; }
+    .meta { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .meta span { display:grid; gap:2px; padding:7px 9px; border-left:1px solid rgba(229,236,218,.15); }
+    .meta strong { font-size:.92rem; }
+    .actions { display:grid; grid-template-columns:44px 1fr; gap:8px; }
+    .icon-button,.visit-button { min-height:44px; border:1px solid rgba(239,213,140,.34); border-radius:7px; color:#f8f6ed; background:rgba(237,203,112,.1); cursor:pointer; }
+    .icon-button:hover,.visit-button:hover { background:rgba(237,203,112,.18); }
+    .icon-button { font-size:1.05rem; }
+    .legend { position:absolute; left:24px; bottom:24px; z-index:20; display:flex; gap:1rem; padding:8px 10px; border:1px solid rgba(229,237,218,.13); border-radius:6px; background:rgba(3,8,12,.62); backdrop-filter:blur(12px); font-size:.68rem; }
+    .legend span { display:flex; align-items:center; gap:6px; }
+    .legend i { width:7px; height:7px; border-radius:50%; background:#dfffd3; box-shadow:0 0 10px rgba(220,255,208,.8); }
+    .legend i.gold { background:#f7d166; box-shadow:0 0 10px rgba(247,209,102,.85); }
+    .focus-hint { position:absolute; left:50%; bottom:22px; z-index:8; padding:7px 10px; border:1px solid rgba(230,237,219,.13); border-radius:6px; color:rgba(239,242,231,.6); background:rgba(3,8,12,.54); font-size:.66rem; transform:translateX(-50%); pointer-events:none; }
+    .loading { position:absolute; inset:0; z-index:40; display:grid; place-items:center; color:rgba(243,245,235,.76); background:#02050a; font-size:.78rem; transition:opacity 350ms ease; }
+    .loading.hidden { opacity:0; pointer-events:none; }
+    @media (max-width:760px) {
+      .topbar { top:10px; left:10px; right:10px; min-height:60px; }
+      .stats { display:none; }
+      .node-label { min-width:104px; }
+      .node-label-copy { min-width:104px; padding:6px 7px; }
+      .node-label small { display:none; }
+      .detail-panel { right:10px; bottom:10px; width:calc(100% - 20px); gap:10px; padding:15px; }
+      .arrival,.legend,.focus-hint { display:none; }
+      .detail-panel p { font-size:.78rem; }
+      .meta span { padding:5px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="galaxy-app">
+    <canvas id="galaxy-canvas" aria-label="3D 庄园星系地图"></canvas>
+    <div class="vignette"></div>
+    <div class="loading" id="loading">正在点亮庄园星系...</div>
+
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark"></span><div class="brand-copy"><small>THE SEED CONSTELLATION</small><h1>庄园星系</h1></div></div>
+      <div class="stats"><span><b id="manor-total">6</b> 座伙伴庄园</span><span><b id="clue-total">4</b> 条园丁线索</span><span><i class="live-dot"></i>今晚有 3 座庄园亮起</span></div>
+    </header>
+
+    <aside class="detail-panel" aria-live="polite">
+      <div class="detail-head"><div><small id="eyebrow">当前星路</small><h2 id="name">晨露展台庄园</h2></div><small id="activity">今天照料过</small></div>
+      <p id="note">晨露展台庄园公开了两个与你的“作品集改版”相关的项目，园丁建议先去看看它的展示路径。</p>
+      <div class="arrival" id="arrival">点击星体可推进镜头；拜访时，一枚发光种子会沿星路抵达目标庄园。</div>
+      <div class="meta"><span><strong id="projects">12</strong><small>项目</small></span><span><strong id="plants">7</strong><small>植物种类</small></span><span><strong id="matches">2</strong><small>公开线索</small></span></div>
+      <div class="actions"><button class="icon-button" id="back" type="button" title="返回星图">←</button><button class="visit-button" id="visit" type="button">沿星路拜访</button></div>
+    </aside>
+
+    <div class="legend"><span><i></i>亮起表示最近活跃</span><span><i class="gold"></i>金色标记表示园丁带回了新线索</span></div>
+    <div class="focus-hint">拖动可自由环绕 · 滚轮缩放 · 点击庄园聚焦</div>
+  </main>
+
+  <script>
+    addEventListener('error',event=>{const loading=document.querySelector('#loading');if(loading)loading.textContent=`3D 初始化失败：${event.message||'模块加载错误'}`});
+    addEventListener('unhandledrejection',event=>{const loading=document.querySelector('#loading');if(loading)loading.textContent=`3D 初始化失败：${event.reason?.message||event.reason||'异步模块错误'}`});
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+
+    const manors={
+      home:{name:'我的庄园',activity:'正在生长',projects:32,plants:18,matches:0,note:'这里是你的庄园，也是所有星路的起点。',image:'/images/garden/overview.png',color:0x58d693,active:true},
+      linzhi:{name:'林间书页庄园',activity:'昨天照料过',projects:9,plants:6,matches:1,note:'公开了一套知识整理方法，可能帮助你的知识库清理。',image:'/images/garden/zone-woodland.png',color:0xd46c9e,active:true},
+      xiaohe:{name:'晨露展台庄园',activity:'今天照料过',projects:12,plants:7,matches:2,note:'公开了两个与你的“作品集改版”相关的项目，园丁建议先去看看它的展示路径。',image:'/images/garden/zone-exhibition.png',color:0x76b7ff,active:true},
+      anran:{name:'镜湖记录庄园',activity:'长期记录',projects:7,plants:5,matches:0,note:'安静地记录长期项目，目前没有新的匹配线索。',image:'/images/garden/zone-water.png',color:0x6fc58b,active:false},
+      yunduo:{name:'云朵花植庄园',activity:'今天照料过',projects:15,plants:9,matches:0,note:'正在整理表达型项目，花植会随项目节奏变化。',image:'/images/garden/zone-flower.png',color:0xe0a07e,active:false},
+      muxi:{name:'木西实验庄园',activity:'昨天照料过',projects:10,plants:8,matches:1,note:'公开了一个快速原型测试方法，可能帮助你的黑客松提案。',image:'/images/garden/zone-experiment.png',color:0x9b65db,active:false}
+    };
+    const layout={home:[0,-.2,0],linzhi:[-4.4,2.25,-1.1],xiaohe:[1.05,3.1,-2],anran:[4.45,1.8,-.8],yunduo:[-3.2,-2.8,-.6],muxi:[3.45,-2.65,-1.4]};
+    const canvas=document.querySelector('#galaxy-canvas');
+    const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x020207,.027);
+    const camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,100);camera.position.set(0,.65,14);
+    const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.65));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.setClearColor(0x020207,0);renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.01;
+    scene.add(new THREE.AmbientLight(0xc4c0ce,1.22));const key=new THREE.PointLight(0xffdca3,14,35);key.position.set(0,3,8);scene.add(key);const rim=new THREE.PointLight(0x8b88a8,7,30);rim.position.set(-7,-3,2);scene.add(rim);
+
+    function softStarTexture(){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.08,'rgba(255,255,255,.96)');g.addColorStop(.32,'rgba(214,211,205,.34)');g.addColorStop(1,'rgba(80,76,88,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)}
+    function galaxyBackdropTexture(){const c=document.createElement('canvas');c.width=1536;c.height=960;const x=c.getContext('2d');const base=x.createRadialGradient(780,455,30,780,455,950);base.addColorStop(0,'#191622');base.addColorStop(.24,'#0c0a12');base.addColorStop(.58,'#040408');base.addColorStop(1,'#010102');x.fillStyle=base;x.fillRect(0,0,c.width,c.height);
+      const cloud=(cx,cy,rx,ry,inner,outer,rotation=0)=>{x.save();x.translate(cx,cy);x.rotate(rotation);x.scale(1,ry/rx);const g=x.createRadialGradient(0,0,0,0,0,rx);g.addColorStop(0,inner);g.addColorStop(.36,inner);g.addColorStop(1,outer);x.fillStyle=g;x.beginPath();x.arc(0,0,rx,0,Math.PI*2);x.fill();x.restore()};
+      x.globalCompositeOperation='screen';cloud(410,640,620,210,'rgba(76,72,98,.24)','rgba(0,0,0,0)',-.34);cloud(760,470,710,180,'rgba(116,103,126,.18)','rgba(0,0,0,0)',-.33);cloud(1100,320,500,145,'rgba(188,153,112,.13)','rgba(0,0,0,0)',-.3);cloud(760,500,280,190,'rgba(220,186,143,.12)','rgba(0,0,0,0)',-.28);cloud(260,160,460,290,'rgba(43,47,63,.14)','rgba(0,0,0,0)',.2);cloud(1320,780,500,320,'rgba(65,48,72,.12)','rgba(0,0,0,0)',-.15);
+      x.globalCompositeOperation='source-over';x.save();x.filter='blur(24px)';x.strokeStyle='rgba(0,3,12,.52)';x.lineWidth=44;x.beginPath();x.moveTo(-120,820);x.bezierCurveTo(320,670,500,545,770,470);x.bezierCurveTo(1080,380,1260,250,1660,90);x.stroke();x.restore();
+      x.globalCompositeOperation='screen';for(let i=0;i<920;i++){const along=Math.random();const bx=-100+along*1730;const by=820-along*690+Math.sin(along*Math.PI*2.4)*45;const spread=36+Math.pow(Math.random(),2)*250;const px=bx+(Math.random()-.5)*spread*2;const py=by+(Math.random()-.5)*spread;const r=Math.random()>.985?1.65:.2+Math.random()*.68;const alpha=.14+Math.random()*.62;x.fillStyle=Math.random()>.86?`rgba(242,218,183,${alpha})`:`rgba(211,210,215,${alpha})`;x.beginPath();x.arc(px,py,r,0,Math.PI*2);x.fill()}for(let i=0;i<360;i++){const px=Math.random()*c.width,py=Math.random()*c.height,r=.18+Math.random()*.5,alpha=.1+Math.random()*.48;x.fillStyle=`rgba(224,221,216,${alpha})`;x.beginPath();x.arc(px,py,r,0,Math.PI*2);x.fill()}
+      x.globalCompositeOperation='source-over';const vignette=x.createRadialGradient(768,470,250,768,470,900);vignette.addColorStop(.45,'rgba(0,0,0,0)');vignette.addColorStop(1,'rgba(0,0,0,.72)');x.fillStyle=vignette;x.fillRect(0,0,c.width,c.height);const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;texture.minFilter=THREE.LinearMipmapLinearFilter;texture.magFilter=THREE.LinearFilter;return texture}
+    function starField(count){const positions=new Float32Array(count*3),colors=new Float32Array(count*3);const cool=new THREE.Color(0xc5c7d2),warm=new THREE.Color(0xffdfae);for(let i=0;i<count;i++){positions[i*3]=(Math.random()-.5)*38;positions[i*3+1]=(Math.random()-.5)*22;positions[i*3+2]=-4-Math.random()*24;const color=cool.clone().lerp(warm,Math.random()*.38);const light=.38+Math.random()*.56;colors[i*3]=color.r*light;colors[i*3+1]=color.g*light;colors[i*3+2]=color.b*light}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(positions,3));geo.setAttribute('color',new THREE.BufferAttribute(colors,3));return new THREE.Points(geo,new THREE.PointsMaterial({map:softStarTexture(),size:.09,vertexColors:true,transparent:true,opacity:.65,alphaTest:.015,sizeAttenuation:true,depthWrite:false,blending:THREE.AdditiveBlending}))}
+    const galaxyPlane=new THREE.Mesh(new THREE.PlaneGeometry(44,27),new THREE.MeshBasicMaterial({map:galaxyBackdropTexture(),depthTest:false,depthWrite:false,toneMapped:false}));galaxyPlane.position.set(0,0,-28);galaxyPlane.renderOrder=-10;camera.add(galaxyPlane);scene.add(camera);
+    const deepStars=starField(1050);scene.add(deepStars);
+
+    const textureLoader=new THREE.TextureLoader();const planetMeshes=[],groups={};
+    function glowTexture(color){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');const grad=x.createRadialGradient(64,64,2,64,64,64);grad.addColorStop(0,'rgba(255,255,255,.9)');const col=new THREE.Color(color);grad.addColorStop(.2,`rgba(${Math.round(col.r*255)},${Math.round(col.g*255)},${Math.round(col.b*255)},.5)`);grad.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=grad;x.fillRect(0,0,128,128);return new THREE.CanvasTexture(c)}
+    function glassTexture(){const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');const shine=x.createLinearGradient(30,20,220,230);shine.addColorStop(0,'rgba(255,255,255,.68)');shine.addColorStop(.16,'rgba(255,255,255,.1)');shine.addColorStop(.42,'rgba(255,255,255,0)');shine.addColorStop(.76,'rgba(225,220,213,.045)');shine.addColorStop(1,'rgba(210,205,198,.14)');x.fillStyle=shine;x.fillRect(0,0,256,256);const edge=x.createRadialGradient(128,128,70,128,128,127);edge.addColorStop(.5,'rgba(255,255,255,0)');edge.addColorStop(.78,'rgba(235,232,225,.09)');edge.addColorStop(1,'rgba(246,242,234,.38)');x.fillStyle=edge;x.fillRect(0,0,256,256);return new THREE.CanvasTexture(c)}
+    const lensGlass=glassTexture();
+    for(const [id,item] of Object.entries(manors)){const group=new THREE.Group();group.position.set(...layout[id]);group.userData.id=id;const radius=id==='home'?.88:.68;const lens=new THREE.Group();const tex=textureLoader.load(item.image,t=>{t.colorSpace=THREE.SRGBColorSpace;t.minFilter=THREE.LinearMipmapLinearFilter;t.magFilter=THREE.LinearFilter});
+      const inner=new THREE.Mesh(new THREE.SphereGeometry(radius*.88,64,48),new THREE.MeshStandardMaterial({map:tex,roughness:.66,metalness:.08,emissive:item.color,emissiveIntensity:item.active?.08:.025}));inner.userData.id=id;planetMeshes.push(inner);lens.add(inner);
+      const glassMaterial=new THREE.MeshPhysicalMaterial({color:0xd8d3ca,transparent:true,opacity:.18,roughness:.08,metalness:.03,transmission:.76,thickness:.24,ior:1.38,clearcoat:1,clearcoatRoughness:.08,emissive:0x292623,emissiveIntensity:item.active?.04:.016,depthWrite:false});
+      const glass=new THREE.Mesh(new THREE.SphereGeometry(radius,64,48),glassMaterial);glass.renderOrder=3;glass.userData.kind='glass-shell';lens.add(glass);
+      const highlight=new THREE.Mesh(new THREE.SphereGeometry(radius*1.006,64,48),new THREE.MeshBasicMaterial({map:lensGlass,transparent:true,opacity:.28,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.FrontSide,toneMapped:false}));highlight.renderOrder=5;lens.add(highlight);group.add(lens);
+      const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexture(item.active?0xd6c8b0:0x8f8796),transparent:true,opacity:item.active?.22:.08,depthWrite:false,blending:THREE.AdditiveBlending}));glow.scale.set(id==='home'?3.25:2.65,id==='home'?3.25:2.65,1);glow.position.z=-.08;group.add(glow);let clueMarker=null;if(item.matches){clueMarker=new THREE.Mesh(new THREE.SphereGeometry(.075,16,12),new THREE.MeshBasicMaterial({color:0xffdc72}));const markerGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexture(0xf7cc5d),transparent:true,opacity:.78,depthWrite:false,blending:THREE.AdditiveBlending}));markerGlow.scale.set(.58,.58,1);clueMarker.add(markerGlow);group.add(clueMarker)}group.userData={id,lens,glow,clueMarker,radius};scene.add(group);groups[id]=group}
+
+    const labelRoot=document.querySelector('.galaxy-app');
+    for(const [id,item] of Object.entries(manors)){const el=document.createElement('div');el.className='node-label';el.dataset.id=id;el.dataset.discovery=String(item.matches>0);el.innerHTML=`<span class="node-label-copy"><strong>${item.name}</strong><small>${item.activity}${item.matches?' · '+item.matches+' 条线索':''}</small></span>`;labelRoot.appendChild(el);item.label=el}
+
+    const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2(9,9),targetLook=new THREE.Vector3(0,0,0),desiredCamera=new THREE.Vector3(0,.65,14);let selected='xiaohe',hovered=null,focus=false,travel=null,drag=false,moved=false,lastX=0,lastY=0,startX=0,startY=0,orbitYaw=0,orbitPitch=.04,desiredDistance=14;
+    function updatePanel(id){const item=manors[id];selected=id;document.querySelector('#name').textContent=item.name;document.querySelector('#activity').textContent=item.activity;document.querySelector('#projects').textContent=item.projects;document.querySelector('#plants').textContent=item.plants;document.querySelector('#matches').textContent=item.matches;document.querySelector('#note').textContent=item.note;document.querySelector('#eyebrow').textContent=id==='home'?'星路起点':'当前星路';document.querySelector('#visit').textContent=id==='home'?'已在自己的庄园':'沿星路拜访';document.querySelector('#visit').disabled=id==='home';for(const [key,value] of Object.entries(manors))value.label.classList.toggle('selected',key===id)}
+    function focusManor(id){updatePanel(id);const p=groups[id].position;focus=id!=='home';desiredDistance=focus?4.15:14;targetLook.copy(p);document.querySelector('#arrival').textContent=focus?'镜头已靠近庄园。可拖动观察玻璃球，也可以沿星路拜访。':'这里是所有星路的起点。';}
+    function overview(){focus=false;desiredDistance=14;targetLook.set(0,0,0);document.querySelector('#arrival').textContent='拖动可自由环绕星系，滚轮可缩放；点击庄园可推进镜头。'}
+    function pick(){raycaster.setFromCamera(pointer,camera);const hit=raycaster.intersectObjects(planetMeshes,false)[0];return hit?.object?.userData?.id||null}
+    canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect();pointer.x=(e.clientX-r.left)/r.width*2-1;pointer.y=-(e.clientY-r.top)/r.height*2+1;if(drag){const dx=e.clientX-lastX,dy=e.clientY-lastY;moved=moved||Math.hypot(e.clientX-startX,e.clientY-startY)>6;orbitYaw+=dx*.006;orbitPitch=Math.max(-1.18,Math.min(1.18,orbitPitch+dy*.0045));lastX=e.clientX;lastY=e.clientY}});
+    canvas.addEventListener('pointerdown',e=>{drag=true;moved=false;startX=lastX=e.clientX;startY=lastY=e.clientY;canvas.setPointerCapture?.(e.pointerId)});canvas.addEventListener('pointerup',e=>{drag=false;canvas.releasePointerCapture?.(e.pointerId);const id=!moved?pick():null;if(id)focusManor(id)});canvas.addEventListener('pointerleave',()=>{pointer.set(9,9)});canvas.addEventListener('wheel',e=>{e.preventDefault();desiredDistance=THREE.MathUtils.clamp(desiredDistance+e.deltaY*.008,focus?2.25:7,focus?8.5:24)},{passive:false});
+    document.querySelector('#back').addEventListener('click',overview);
+    document.querySelector('#visit').addEventListener('click',()=>{if(selected==='home')return;const start=groups.home.position.clone(),end=groups[selected].position.clone(),mid=start.clone().lerp(end,.5);mid.z+=2.1;mid.y+=1.15;const curve=new THREE.QuadraticBezierCurve3(start,mid,end);const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(80)),new THREE.LineBasicMaterial({color:0xf8d36c,transparent:true,opacity:.68,blending:THREE.AdditiveBlending}));scene.add(line);const seed=new THREE.Mesh(new THREE.SphereGeometry(.095,18,14),new THREE.MeshBasicMaterial({color:0xffe794}));const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexture(0xf8d36c),transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending}));halo.scale.set(.8,.8,1);seed.add(halo);scene.add(seed);travel={curve,seed,line,start:performance.now(),duration:1450};document.querySelector('#visit').textContent='正在穿过星路...';document.querySelector('#arrival').textContent=`发光种子正在前往 ${manors[selected].name}。`});
+
+    const startedAt=performance.now();
+    function animate(){requestAnimationFrame(animate);const t=(performance.now()-startedAt)/1000;galaxyPlane.material.map.offset.x=(Math.sin(t*.018)*.008);deepStars.rotation.y-=.00008;const id=pick();if(id!==hovered){hovered=id;canvas.style.cursor=id?'pointer':drag?'grabbing':'grab'}for(const [key,group] of Object.entries(groups)){group.rotation.y+=key==='home' ? .0018 : .0026;group.userData.lens.quaternion.copy(camera.quaternion);if(group.userData.clueMarker){const a=t*.7+group.position.x;group.userData.clueMarker.position.set(Math.cos(a)*group.userData.radius*1.12,Math.sin(a)*group.userData.radius*1.12,.16)}const active=manors[key].active,chosen=key===selected,over=key===hovered;const pulse=1+(active ? .035 : .012)*Math.sin(t*2.2+group.position.x);const targetScale=(chosen?1.16:over?1.1:1)*pulse;group.scale.lerp(new THREE.Vector3(targetScale,targetScale,targetScale),.08)}
+      const targetDistance=desiredDistance;desiredCamera.set(targetLook.x+Math.sin(orbitYaw)*Math.cos(orbitPitch)*targetDistance,targetLook.y+Math.sin(orbitPitch)*targetDistance,targetLook.z+Math.cos(orbitYaw)*Math.cos(orbitPitch)*targetDistance);camera.position.lerp(desiredCamera,.075);camera.lookAt(targetLook);
+      if(travel){const progress=Math.min(1,(performance.now()-travel.start)/travel.duration);travel.seed.position.copy(travel.curve.getPoint(1-Math.pow(1-progress,2)));travel.seed.scale.setScalar(1+Math.sin(progress*Math.PI)*.7);travel.line.material.opacity=.75*(1-progress*.45);if(progress>=1){scene.remove(travel.seed,travel.line);document.querySelector('#visit').textContent=`已抵达 ${manors[selected].name}`;document.querySelector('#arrival').textContent=manors[selected].matches?'园丁带回了新的公开线索，已放入庄园来信。':'已进入只读庄园，可以浏览公开项目与植物。';travel=null}}
+      for(const [key,item] of Object.entries(manors)){const pos=groups[key].position.clone().project(camera);const visible=pos.z<1&&pos.z>-1;item.label.style.left=`${(pos.x*.5+.5)*innerWidth}px`;item.label.style.top=`${(-pos.y*.5+.5)*innerHeight}px`;item.label.classList.toggle('hidden',!visible||(focus&&key!==selected&&key!=='home'))}
+      renderer.render(scene,camera)}
+    updatePanel(selected);animate();
+    const loading=document.querySelector('#loading');
+    textureLoader.load('/images/garden/overview.png',()=>loading.classList.add('hidden'),undefined,()=>loading.classList.add('hidden'));
+    setTimeout(()=>loading.classList.add('hidden'),900);
+    addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.8))});
+  </script>
+</body>
+</html>

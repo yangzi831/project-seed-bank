@@ -360,7 +360,6 @@ export function App() {
           projects={state.projects}
           onOpenZone={nav.goZone}
           onOpenProject={nav.goProject}
-          onOpenKeeper={nav.goKeeper}
           onAddProject={addProject}
           onUpdateProject={updateProject}
           onDeleteProject={deleteProject}
