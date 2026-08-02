@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { TopNav } from './components/TopNav'
 import { AISettingsPanel } from './components/AISettingsPanel'
+import { ClaimHandleModal } from './components/ClaimHandleModal'
 import { SeedRefiner } from './components/SeedRefiner'
 import {
   createMockProjects,
@@ -16,6 +17,9 @@ import { callGardener, assertRefineSeedOutput } from './services/ai/gardener'
 import { buildProjectContext } from './services/ai/context'
 import type { RefineSeedOutput, SummarizeGrowthOutput } from './services/ai/types'
 import { loadAISettings, saveAISettings } from './services/ai/settings'
+import { useSupabaseSession } from './hooks/useSupabaseSession'
+import { getMyProfile } from './services/supabase/profiles'
+import type { PublicProfile } from './services/supabase/profiles'
 import { HomeView } from './views/HomeView'
 import { ListView } from './views/ListView'
 import { PlantLibraryView } from './views/PlantLibraryView'
@@ -36,6 +40,9 @@ export function App() {
   const [aiSettings, setAISettings] = useState(() => loadAISettings())
   const [showAISettings, setShowAISettings] = useState(false)
   const [seedRefiner, setSeedRefiner] = useState<{ open: boolean; initialIdea: string }>({ open: false, initialIdea: '' })
+  const { user, status: sessionStatus } = useSupabaseSession()
+  const [profile, setProfile] = useState<PublicProfile | null>(null)
+  const [showClaim, setShowClaim] = useState(false)
 
   useEffect(() => {
     const nextPath = withBasePath(routeToPath(route))
@@ -51,6 +58,24 @@ export function App() {
   useEffect(() => {
     saveGardenState(state)
   }, [state])
+
+  useEffect(() => {
+    if (!user) {
+      setProfile(null)
+      return
+    }
+    let cancelled = false
+    getMyProfile(user.id)
+      .then((p) => {
+        if (!cancelled) setProfile(p)
+      })
+      .catch(() => {
+        if (!cancelled) setProfile(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
   const currentZone = useMemo(() => {
     if (route.name !== 'zone') return undefined
@@ -225,7 +250,16 @@ export function App() {
 
   return (
     <div className="app-shell">
-      <TopNav active={route.name} onGarden={nav.goHome} onList={nav.goList} onBoard={nav.goBoard} onSettings={() => setShowAISettings(true)} />
+      <TopNav
+        active={route.name}
+        onGarden={nav.goHome}
+        onList={nav.goList}
+        onBoard={nav.goBoard}
+        onSettings={() => setShowAISettings(true)}
+        profile={profile ? { handle: profile.handle, nickname: profile.nickname } : null}
+        sessionReady={sessionStatus === 'ready'}
+        onClaim={() => setShowClaim(true)}
+      />
       {route.name === 'home' && (
         <HomeView
           zones={state.zones}
@@ -304,6 +338,16 @@ export function App() {
           onApply={applyRefinedSeed}
           onCancel={() => setSeedRefiner({ open: false, initialIdea: '' })}
           onRefine={refineSeed}
+        />
+      )}
+      {showClaim && user && (
+        <ClaimHandleModal
+          userId={user.id}
+          onClaimed={(p) => {
+            setProfile(p)
+            setShowClaim(false)
+          }}
+          onClose={() => setShowClaim(false)}
         />
       )}
     </div>

@@ -1,12 +1,17 @@
+export type TopNavProfile = { handle: string; nickname: string | null } | null
+
 type TopNavProps = {
   active: string
   onGarden: () => void
   onList: () => void
   onBoard: () => void
   onSettings?: () => void
+  profile?: TopNavProfile
+  sessionReady?: boolean
+  onClaim?: () => void
 }
 
-export function TopNav({ active, onGarden, onList, onBoard, onSettings }: TopNavProps) {
+export function TopNav({ active, onGarden, onList, onBoard, onSettings, profile, sessionReady, onClaim }: TopNavProps) {
   return (
     <header className="top-nav">
       <button className="brand-mark" type="button" onClick={onGarden}>
@@ -23,11 +28,25 @@ export function TopNav({ active, onGarden, onList, onBoard, onSettings }: TopNav
           Board
         </button>
       </nav>
-      {onSettings && (
-        <button className="ghost-button" type="button" onClick={onSettings} title="AI 设置">
-          ⚙️
-        </button>
-      )}
+      <div className="top-nav-actions">
+        {profile ? (
+          <span className="top-nav-profile" title={`@${profile.handle}`}>
+            {profile.nickname ?? profile.handle}
+          </span>
+        ) : (
+          sessionReady &&
+          onClaim && (
+            <button className="ghost-button" type="button" onClick={onClaim}>
+              认领用户名
+            </button>
+          )
+        )}
+        {onSettings && (
+          <button className="ghost-button" type="button" onClick={onSettings} title="AI 设置">
+            ⚙️
+          </button>
+        )}
+      </div>
     </header>
   )
 }
