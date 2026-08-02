@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && node scripts/create-spa-fallback.mjs",
+    "build": "tsc && vite build && node scripts/create-spa-fallback.mjs && node scripts/optimize-images.mjs",
+    "build:cf": "tsc && vite build --base=/ && node scripts/create-spa-fallback.mjs && node scripts/optimize-images.mjs && npx wrangler pages deploy dist --project-name project-seed-bank",
     "preview": "vite preview",
     "import:plants": "node scripts/import-plants.mjs",
     "test": "vitest run"
@@ -17,7 +18,8 @@
     "jsdom": "^29.1.1",
     "typescript": "~6.0.2",
     "vite": "^6.3.6",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "wrangler": "^4.86.0"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",
