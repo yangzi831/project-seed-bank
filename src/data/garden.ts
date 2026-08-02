@@ -88,6 +88,10 @@ export type ProjectSeed = {
   aiSummary?: AISummary
   createdAt: string
   updatedAt: string
+  /** 标记项目来源：'demo' = 演示预置，'user' = 用户创建 */
+  seedOrigin?: 'demo' | 'user'
+  /** 用户是否曾修改该项目（创建/编辑/移动/写日志/加成果均触发） */
+  userModified?: boolean
 }
 
 export type GardenState = {
@@ -168,14 +172,14 @@ export const defaultZones: Zone[] = [
   },
 ]
 
-const storageKey = 'project-seed-bank:v3'
-const legacyStorageKeys = ['project-seed-bank:v2', 'project-seed-bank:v1']
+const storageKey = 'project-seed-bank:v2'
+const legacyStorageKeys = ['project-seed-bank:v3', 'project-seed-bank:v1']
 
 export function loadGardenState(): GardenState {
   const fallback: GardenState = {
     schemaVersion: SCHEMA_VERSION,
     zones: defaultZones,
-    projects: createMockProjects(),
+    projects: createMockProjects().map((p) => ({ ...p, seedOrigin: 'demo' as const, userModified: false })),
     demoDataVersion: DEMO_DATA_VERSION,
   }
 
@@ -193,15 +197,39 @@ export function loadGardenState(): GardenState {
 
     const parsed = JSON.parse(raw) as Partial<GardenState> & { projects?: unknown[] }
     const shouldRefreshDemoProjects = parsed.demoDataVersion !== DEMO_DATA_VERSION
+
+    let projects = (parsed.projects ?? []).map((project, index) =>
+      normalizeProject(project, index),
+    )
+
+    // ADR-008: 演示数据保护 — 只更新可证明未修改的预置项目
+    if (shouldRefreshDemoProjects) {
+      const freshDemos = createMockProjects()
+      const kept = projects.filter((p) => {
+        // 保留用户创建的项目（非 demo 来源）
+        if (p.seedOrigin !== 'demo') return true
+        // 保留用户修改过的 demo 项目
+        if (p.userModified) return true
+        // 保留不在新 demo 列表中的旧 demo（无法判断来源 → 保留策略）
+        return false
+      })
+
+      // 合并：保留的项目 + 新的 demo 项目
+      const keptIds = new Set(kept.map((p) => p.id))
+      const newDemos = freshDemos
+        .filter((p) => !keptIds.has(p.id))
+        .map((p) => ({ ...p, seedOrigin: 'demo' as const, userModified: false }))
+
+      projects = [...kept, ...newDemos]
+    }
+
     return {
       schemaVersion: SCHEMA_VERSION,
       zones: defaultZones.map((zone) => {
         const saved = parsed.zones?.find((item) => item.id === zone.id)
         return { ...zone, ...saved, position: zone.position, image: zone.image }
       }),
-      projects: shouldRefreshDemoProjects
-        ? createMockProjects()
-        : (parsed.projects ?? []).map((project, index) => normalizeProject(project, index)),
+      projects,
       demoDataVersion: DEMO_DATA_VERSION,
     }
   } catch {
@@ -249,6 +277,8 @@ export function createProjectSeed(input: {
     logs: [],
     milestones: [],
     outcomes: [],
+    seedOrigin: 'user',
+    userModified: true,
   }
 }
 
@@ -514,6 +544,8 @@ export function createMockProjects(): ProjectSeed[] {
     const project = createProjectSeed(sample)
     return {
       ...project,
+      seedOrigin: 'demo' as const,
+      userModified: false,
       logs:
         index % 2 === 0
           ? [
@@ -629,6 +661,8 @@ function normalizeProject(rawProject: unknown, index: number): ProjectSeed {
         createdAt: now,
       })),
     aiSummary: project.aiSummary,
+    seedOrigin: project.seedOrigin ?? undefined,
+    userModified: project.userModified ?? false,
     createdAt: project.createdAt ?? now,
     updatedAt: project.updatedAt ?? now,
   }

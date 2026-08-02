@@ -1,6 +1,6 @@
 import type { AISettings } from './settings'
 import { loadAISettings } from './settings'
-import type { AgentActionOutput, GardenerIntent, GardenerMessage, RefineSeedOutput, SummarizeGrowthOutput } from './types'
+import type { AgentActionOutput, GardenerIntent, GardenerMessage, GenerateHarvestOutput, RefineSeedOutput, SummarizeGrowthOutput } from './types'
 import { AGENT_ACTIONS } from './types'
 import { decideAgentActionPrompt, gardenerSystemPrompt, refineSeedPrompt, summarizeGrowthPrompt } from './prompts'
 
@@ -162,6 +162,15 @@ export function assertSummarizeGrowthOutput(data: unknown): SummarizeGrowthOutpu
     obstacles: Array.isArray(d.obstacles) ? d.obstacles : [],
     nextSteps: Array.isArray(d.nextSteps) ? d.nextSteps : [],
     milestoneSuggestions: Array.isArray(d.milestoneSuggestions) ? d.milestoneSuggestions : [],
+  }
+}
+
+export function assertGenerateHarvestOutput(data: unknown): GenerateHarvestOutput {
+  const d = data as Partial<GenerateHarvestOutput>
+  return {
+    summary: d.summary ?? '',
+    highlights: Array.isArray(d.highlights) ? d.highlights : [],
+    markdown: d.markdown ?? '',
   }
 }
 

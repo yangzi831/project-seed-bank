@@ -21,7 +21,7 @@ describe('DigitalGardenerAvatar', () => {
     expect(bounds.max.x - bounds.min.x).toBeGreaterThan(1.5)
 
     avatar.animate(1.5, 1 / 60, { mode: 'tend', thinking: true, reducedMotion: false })
-    expect(avatar.light.intensity).toBeGreaterThan(5)
-    expect(avatar.bodyMat.emissiveIntensity).toBeGreaterThan(0.4)
+    expect(avatar.light.intensity).toBeGreaterThan(4)
+    expect(avatar.bodyMat.emissiveIntensity).toBeGreaterThan(0.3)
   })
 })

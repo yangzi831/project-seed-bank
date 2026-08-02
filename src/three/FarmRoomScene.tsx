@@ -78,7 +78,7 @@ export function FarmRoomScene({ ownerName, accent, projects, isOwn, onProjectOpe
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, tier === 'low' ? 1.15 : tier === 'medium' ? 1.55 : 1.85))
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 1.15
+    renderer.toneMappingExposure = 1.02
     renderer.shadowMap.enabled = tier !== 'low'
     renderer.shadowMap.type = THREE.PCFShadowMap
 
@@ -93,7 +93,7 @@ export function FarmRoomScene({ ownerName, accent, projects, isOwn, onProjectOpe
 
     const composer = new EffectComposer(renderer)
     composer.addPass(new RenderPass(scene, camera))
-    const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), tier === 'low' ? 0.3 : 0.45, 0.45, 0.8)
+    const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), tier === 'low' ? 0.24 : 0.34, 0.38, 0.86)
     composer.addPass(bloom)
     composer.addPass(new OutputPass())
 
@@ -141,8 +141,8 @@ export function FarmRoomScene({ ownerName, accent, projects, isOwn, onProjectOpe
     world.add(house.group)
 
     const agent = createDigitalGardenerAvatar(accent, glowTexture)
-    agent.group.position.set(3.5, 0, -(ROWS * PLOT_GAP) / 2 - 2.8)
-    agent.group.scale.setScalar(1.08)
+    agent.group.position.set(3.8, 0, -(ROWS * PLOT_GAP) / 2 - 2.5)
+    agent.group.scale.setScalar(1.2)
     world.add(agent.group)
 
     const portal = createPortal(accent, glowTexture)

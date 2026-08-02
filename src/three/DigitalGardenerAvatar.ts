@@ -98,11 +98,11 @@ function createStem(points: THREE.Vector3[], material: THREE.Material, name: str
 function makePalette(accent: THREE.Color): THREE.Color[] {
   const tint = accent.clone().lerp(new THREE.Color('#effff4'), 0.56)
   return [
-    new THREE.Color('#ffd8be').lerp(tint, 0.12),
-    new THREE.Color('#d9c8ff').lerp(tint, 0.1),
-    new THREE.Color('#8ddfff').lerp(tint, 0.16),
-    new THREE.Color('#79efc0').lerp(tint, 0.22),
-    new THREE.Color('#fff1a9').lerp(tint, 0.08),
+    new THREE.Color('#ffad9f').lerp(tint, 0.08),
+    new THREE.Color('#ad91ff').lerp(tint, 0.08),
+    new THREE.Color('#48cfff').lerp(tint, 0.12),
+    new THREE.Color('#3be19a').lerp(tint, 0.16),
+    new THREE.Color('#ffdb68').lerp(tint, 0.06),
   ]
 }
 
@@ -132,14 +132,14 @@ export function createDigitalGardenerAvatar(accent: string, glowTexture?: THREE.
     metalness: 0.02,
     clearcoat: 1,
     clearcoatRoughness: 0.13,
-    transmission: 0.14,
+    transmission: 0.09,
     thickness: 0.72,
     ior: 1.28,
     iridescence: 0.92,
     iridescenceIOR: 1.2,
     iridescenceThicknessRange: [110, 430],
     emissive: pastelAccent,
-    emissiveIntensity: 0.28,
+    emissiveIntensity: 0.16,
   })
   const petalMat = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
@@ -148,18 +148,18 @@ export function createDigitalGardenerAvatar(accent: string, glowTexture?: THREE.
     metalness: 0,
     clearcoat: 1,
     clearcoatRoughness: 0.11,
-    transmission: 0.28,
+    transmission: 0.18,
     thickness: 0.34,
     ior: 1.24,
     iridescence: 1,
     iridescenceIOR: 1.18,
     iridescenceThicknessRange: [90, 470],
     transparent: true,
-    opacity: 0.88,
+    opacity: 0.94,
     depthWrite: false,
     side: THREE.DoubleSide,
     emissive: pastelAccent,
-    emissiveIntensity: 0.24,
+    emissiveIntensity: 0.12,
   })
   const faceMat = new THREE.MeshPhysicalMaterial({
     color: 0xfff7d9,
@@ -171,7 +171,7 @@ export function createDigitalGardenerAvatar(accent: string, glowTexture?: THREE.
     thickness: 0.2,
     ior: 1.25,
     emissive: 0xffedba,
-    emissiveIntensity: 0.18,
+    emissiveIntensity: 0.07,
   })
   const stemMat = new THREE.MeshPhysicalMaterial({
     color: pastelAccent,
@@ -179,7 +179,7 @@ export function createDigitalGardenerAvatar(accent: string, glowTexture?: THREE.
     clearcoat: 0.8,
     clearcoatRoughness: 0.16,
     emissive: accentColor,
-    emissiveIntensity: 0.35,
+    emissiveIntensity: 0.22,
   })
   const eyeMat = new THREE.MeshPhysicalMaterial({
     color: 0x24526d,
@@ -199,7 +199,7 @@ export function createDigitalGardenerAvatar(accent: string, glowTexture?: THREE.
     thickness: 0.4,
     ior: 1.35,
     emissive: 0xffc85a,
-    emissiveIntensity: 2.1,
+    emissiveIntensity: 1.65,
   })
   const crystalShellMat = new THREE.MeshPhysicalMaterial({
     color: 0xd9fff4,
@@ -383,7 +383,7 @@ export function createDigitalGardenerAvatar(accent: string, glowTexture?: THREE.
   corePivot.add(coreShell, core, coreRing)
   model.add(corePivot)
 
-  const light = new THREE.PointLight(0xffe7a0, 3.6, 7, 2)
+  const light = new THREE.PointLight(0xffe7a0, 2.6, 6, 2)
   light.name = 'gardener-core-light'
   light.position.copy(corePivot.position)
   model.add(light)
@@ -430,21 +430,19 @@ export function createDigitalGardenerAvatar(accent: string, glowTexture?: THREE.
   const sparkleGeometry = new THREE.BufferGeometry()
   sparkleGeometry.setAttribute('position', new THREE.BufferAttribute(sparklePositions, 3))
   sparkleGeometry.setAttribute('color', new THREE.BufferAttribute(sparkleColors, 3))
-  const sparkles = new THREE.Points(
-    sparkleGeometry,
-    new THREE.PointsMaterial({
-      size: 0.075,
-      sizeAttenuation: true,
-      vertexColors: true,
-      map: glowTexture,
-      transparent: true,
-      opacity: 0.92,
-      alphaTest: glowTexture ? 0.02 : 0,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      toneMapped: false,
-    }),
-  )
+  const sparkleMaterialOptions: THREE.PointsMaterialParameters = {
+    size: 0.075,
+    sizeAttenuation: true,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.92,
+    alphaTest: glowTexture ? 0.02 : 0,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    toneMapped: false,
+  }
+  if (glowTexture) sparkleMaterialOptions.map = glowTexture
+  const sparkles = new THREE.Points(sparkleGeometry, new THREE.PointsMaterial(sparkleMaterialOptions))
   sparkles.name = 'gardener-inner-stardust'
   sparkles.renderOrder = 3
   model.add(sparkles)
@@ -498,9 +496,9 @@ export function createDigitalGardenerAvatar(accent: string, glowTexture?: THREE.
     core.rotation.x += delta * 0.6 * motion
     core.rotation.y += delta * 0.9 * motion
     coreRing.rotation.z -= delta * 0.7 * motion
-    coreMat.emissiveIntensity = thinking ? 3.4 : mode === 'tend' ? 2.8 : 2.1
-    light.intensity = thinking ? 5.4 : mode === 'tend' ? 4.6 : 3.6
-    bodyMat.emissiveIntensity = mode === 'tend' ? 0.5 : thinking ? 0.42 : 0.28
+    coreMat.emissiveIntensity = thinking ? 2.8 : mode === 'tend' ? 2.3 : 1.65
+    light.intensity = thinking ? 4.4 : mode === 'tend' ? 3.4 : 2.6
+    bodyMat.emissiveIntensity = mode === 'tend' ? 0.32 : thinking ? 0.26 : 0.16
 
     for (const mote of motes) {
       const angle = mote.phase + elapsed * mote.speed * motion

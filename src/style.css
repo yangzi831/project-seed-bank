@@ -3935,6 +3935,136 @@ p {
   z-index: 1;
 }
 
+/* 右上状态条 */
+.world-status {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  z-index: 5;
+  display: flex;
+  gap: 0.55rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid rgba(220, 245, 207, 0.14);
+  border-radius: 12px;
+  background: rgba(8, 20, 18, 0.62);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.world-status span {
+  display: grid;
+  justify-items: center;
+  gap: 0.05rem;
+  min-width: 70px;
+  padding: 0.3rem 0.5rem;
+  border-right: 1px solid rgba(220, 245, 207, 0.08);
+}
+
+.world-status span:last-child {
+  border-right: 0;
+}
+
+.world-status strong {
+  font-size: 1.15rem;
+  color: #effbe7;
+  line-height: 1;
+}
+
+.world-status small {
+  font-size: 0.65rem;
+  color: rgba(231, 243, 224, 0.55);
+  letter-spacing: 0.05em;
+}
+
+/* 底部选中面板 */
+.manor-panel {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 14px 22px;
+  border: 1px solid rgba(220, 245, 207, 0.2);
+  border-radius: 16px;
+  background: rgba(12, 22, 16, 0.78);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 0 0 1px rgba(245, 255, 237, 0.06) inset, 0 12px 40px rgba(0, 0, 0, 0.35), 0 0 30px rgba(172, 230, 156, 0.1);
+}
+
+.manor-panel-info {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.manor-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.manor-panel-header > div {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.manor-panel-header strong {
+  font-size: 1rem;
+  color: #f5f8ed;
+}
+
+.manor-panel-header small {
+  font-size: 0.74rem;
+  color: rgba(235, 245, 230, 0.62);
+}
+
+.manor-planet-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+/* 新线索金色标记 */
+.manor-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.28rem 0.6rem;
+  border: 1px solid rgba(240, 210, 130, 0.3);
+  border-radius: 999px;
+  color: #ffe8a0;
+  background: rgba(80, 60, 20, 0.35);
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 沿星路拜访按钮 */
+.manor-visit-button {
+  flex: 0 0 auto;
+  min-width: 130px;
+  padding: 0.65rem 1.1rem;
+  border: 1px solid rgba(205, 239, 189, 0.34);
+  border-radius: 999px;
+  color: #effbe8;
+  background: rgba(117, 166, 108, 0.18);
+  font-size: 0.85rem;
+  font-weight: 700;
+  box-shadow: 0 0 20px rgba(172, 230, 156, 0.08);
+  transition: all 180ms ease;
+}
+
+.manor-visit-button:hover {
+  border-color: rgba(205, 239, 189, 0.6);
+  background: rgba(117, 166, 108, 0.28);
+  box-shadow: 0 0 30px rgba(172, 230, 156, 0.18);
+  transform: translateY(-1px);
+}
+
 .world-hint {
   position: absolute;
   left: 50%;
@@ -4031,4 +4161,86 @@ p {
   border: 1px solid rgba(140, 170, 230, 0.25);
   color: #bcd2f0;
   font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .world-status {
+    top: 10px;
+    right: 10px;
+    gap: 0.3rem;
+    padding: 0.4rem 0.6rem;
+  }
+
+  .world-status span {
+    min-width: 50px;
+    padding: 0.2rem 0.35rem;
+  }
+
+  .world-status strong {
+    font-size: 1rem;
+  }
+
+  .world-status small {
+    font-size: 0.58rem;
+  }
+
+  .manor-panel {
+    left: 10px;
+    right: 10px;
+    bottom: 16px;
+    transform: none;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 12px 16px;
+  }
+
+  .manor-panel-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .manor-visit-button {
+    width: 100%;
+  }
+}
+
+/* ─── Garden Theme (data-theme="garden") — PRD P0 花园主题视觉覆写 ─── */
+
+[data-theme="garden"] {
+  --ink: #07100f;
+  --panel: rgba(14, 39, 31, 0.42);
+  --panel-solid: #0b1e18;
+  --parchment: #eef8ee;
+  --parchment-2: #c8e6c9;
+  --parchment-3: #a5d6a7;
+  --muted: #66bb6a;
+  --bronze: #2e7d32;
+  --bronze-dark: #1b5e20;
+  --gold: #81c784;
+  --gold-deep: #4caf50;
+  --gold-border: #388e3c;
+  --danger: #ff5252;
+  --danger-deep: #d32f2f;
+  --danger-border: #b71c1c;
+  --ember: #ff9800;
+  --tide: #00bcd4;
+  --success: #4caf50;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #eef8ee;
+  background: #07100f;
+}
+
+[data-theme="garden"] html,
+[data-theme="garden"] body,
+[data-theme="garden"] #app {
+  background: #07100f;
+}
+
+[data-theme="garden"] body,
+[data-theme="garden"] button,
+[data-theme="garden"] input,
+[data-theme="garden"] textarea,
+[data-theme="garden"] select {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }

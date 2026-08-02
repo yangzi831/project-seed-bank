@@ -1,5 +1,5 @@
 import type { ProjectSeed } from '../data/garden'
-import { createMockProjects } from '../data/garden'
+import { createMockProjects, defaultZones } from '../data/garden'
 
 /**
  * 多房间世界：房间注册表 + 邻居数据 provider + 大地图布局。
@@ -74,4 +74,67 @@ function buildMockNeighbors(): Room[] {
     projects: createMockProjects().slice(0, 3 + (i % 3)),
     isOwn: false,
   }))
+}
+
+// ---- 庄园星图：星球元数据 ---- //
+
+/** 庄园星球元数据（纯函数，可单测）。 */
+export type ManorMeta = {
+  /** 星球半径：自己的大、邻居略小。 */
+  radius: number
+  /** 对应花园贴图路径（zone-*.png 或 overview.png）。 */
+  imagePath: string
+  /** 是否有机密线索（有 mature/harvested 项目的庄园）。 */
+  hasClue: boolean
+  /** 今晚是否亮起（updatedAt 为今天的项目数 > 0）。 */
+  litTonight: boolean
+}
+
+/** 根据房间首个项目 zoneId 映射到对应的花园贴图路径。
+ *  自己的房间用 overview.png；邻居按首个项目 zoneId 映射；
+ *  无项目则 fallback 到 overview.png。 */
+export function zoneImageForRoom(room: Room): string {
+  if (room.isOwn) return '/images/garden/overview.png'
+  const firstProject = room.projects[0]
+  if (!firstProject) return '/images/garden/overview.png'
+  const zoneId = firstProject.zoneId
+  const zone = defaultZones.find((z) => z.id === zoneId)
+  if (zone) return zone.image
+  return '/images/garden/overview.png'
+}
+
+/** 推导庄园星球元数据。 */
+export function deriveManorMeta(room: Room): ManorMeta {
+  const isOwn = room.isOwn
+  return {
+    radius: isOwn ? 3.5 : 2.5 + (room.projects.length > 5 ? 0.5 : 0),
+    imagePath: zoneImageForRoom(room),
+    hasClue: room.projects.some((p) => p.status === 'mature' || p.status === 'harvested'),
+    litTonight: isTodayActive(room),
+  }
+}
+
+/** 庄园是否有今天更新的项目。 */
+export function isTodayActive(room: Room): boolean {
+  const today = new Date()
+  const todayStr = today.toISOString().slice(0, 10) // YYYY-MM-DD
+  return room.projects.some((p) => {
+    const updated = p.updatedAt.slice(0, 10)
+    return updated === todayStr
+  })
+}
+
+/** 计算伙伴庄园数（不含自己）。 */
+export function countPartnerManors(rooms: Room[]): number {
+  return rooms.filter((r) => !r.isOwn).length
+}
+
+/** 计算线索数（有 mature 或 harvested 项目的庄园数）。 */
+export function countClues(rooms: Room[]): number {
+  return rooms.filter((r) => r.projects.some((p) => p.status === 'mature' || p.status === 'harvested')).length
+}
+
+/** 计算今晚亮起的庄园数。 */
+export function countLitTonight(rooms: Room[]): number {
+  return rooms.filter((r) => isTodayActive(r)).length
 }
