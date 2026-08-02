@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { TopNav } from './components/TopNav'
 import { AISettingsPanel } from './components/AISettingsPanel'
 import { ClaimHandleModal } from './components/ClaimHandleModal'
@@ -20,7 +20,10 @@ import { loadAISettings, saveAISettings } from './services/ai/settings'
 import { useSupabaseSession } from './hooks/useSupabaseSession'
 import { getMyProfile } from './services/supabase/profiles'
 import type { PublicProfile } from './services/supabase/profiles'
+import { syncGardenSnapshot } from './services/supabase/gardens'
+import { getUnreadCommentCount } from './services/supabase/comments'
 import { HomeView } from './views/HomeView'
+import { GardenProfileView } from './views/GardenProfileView'
 import { ListView } from './views/ListView'
 import { PlantLibraryView } from './views/PlantLibraryView'
 import { ProjectDetailView } from './views/ProjectDetailView'
@@ -32,6 +35,7 @@ type Route =
   | { name: 'board' }
   | { name: 'zone'; zoneId: ZoneKey }
   | { name: 'plantLibrary' }
+  | { name: 'profile'; handle: string }
 
 export function App() {
   const [state, setState] = useState<GardenState>(() => loadGardenState())
@@ -43,6 +47,8 @@ export function App() {
   const { user, status: sessionStatus } = useSupabaseSession()
   const [profile, setProfile] = useState<PublicProfile | null>(null)
   const [showClaim, setShowClaim] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const syncTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     const nextPath = withBasePath(routeToPath(route))
@@ -76,6 +82,43 @@ export function App() {
       cancelled = true
     }
   }, [user])
+
+  // 公开快照防抖推送（本地为源）
+  useEffect(() => {
+    if (!user || sessionStatus !== 'ready') return
+    const userId = user.id
+    if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current)
+    syncTimerRef.current = window.setTimeout(() => {
+      void syncGardenSnapshot(userId, state)
+    }, 2000)
+    return () => {
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current)
+    }
+  }, [state, user, sessionStatus])
+
+  // 铃铛未读数轮询
+  useEffect(() => {
+    if (!user || sessionStatus !== 'ready') {
+      setUnreadCount(0)
+      return
+    }
+    const userId = user.id
+    let cancelled = false
+    async function poll() {
+      try {
+        const count = await getUnreadCommentCount(userId)
+        if (!cancelled) setUnreadCount(count)
+      } catch {
+        // 轮询失败静默
+      }
+    }
+    void poll()
+    const timer = window.setInterval(() => void poll(), 45000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [user, sessionStatus])
 
   const currentZone = useMemo(() => {
     if (route.name !== 'zone') return undefined
@@ -238,6 +281,7 @@ export function App() {
     goBoard: () => navigate({ name: 'board' }),
     goZone: (zoneId: ZoneKey) => navigate({ name: 'zone', zoneId }),
     goProject: (projectId: string) => setSelectedProjectId(projectId),
+    goProfile: (handle: string) => navigate({ name: 'profile', handle }),
   }
 
   function navigate(nextRoute: Route) {
@@ -259,6 +303,12 @@ export function App() {
         profile={profile ? { handle: profile.handle, nickname: profile.nickname } : null}
         sessionReady={sessionStatus === 'ready'}
         onClaim={() => setShowClaim(true)}
+        onVisit={(handle) => nav.goProfile(handle)}
+        unreadCount={unreadCount}
+        onBell={profile ? () => {
+          setUnreadCount(0)
+          nav.goProfile(profile.handle)
+        } : undefined}
       />
       {route.name === 'home' && (
         <HomeView
@@ -292,6 +342,14 @@ export function App() {
         />
       )}
       {route.name === 'plantLibrary' && <PlantLibraryView />}
+      {route.name === 'profile' && (
+        <GardenProfileView
+          handle={route.handle}
+          currentUserId={user?.id ?? null}
+          myProfile={profile}
+          onBack={nav.goHome}
+        />
+      )}
       {route.name === 'zone' && currentZone && (
         <ZoneView
           zone={currentZone}
@@ -376,6 +434,11 @@ function parseRoute(pathname: string): Route {
     return { name: 'zone', zoneId: zoneMatch[1] }
   }
 
+  const profileMatch = pathname.match(/^\/u\/([a-z0-9_]+)$/)
+  if (profileMatch) {
+    return { name: 'profile', handle: profileMatch[1] }
+  }
+
   return { name: 'home' }
 }
 
@@ -384,6 +447,7 @@ function routeToPath(route: Route) {
   if (route.name === 'list') return '/plants'
   if (route.name === 'board') return '/board'
   if (route.name === 'plantLibrary') return '/dev/plant-library'
+  if (route.name === 'profile') return `/u/${route.handle}`
   return `/garden/${route.zoneId}`
 }
 

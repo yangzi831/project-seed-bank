@@ -41,3 +41,22 @@ export async function getMyProfile(userId: string): Promise<PublicProfile | null
   if (error) throw new Error(error.message)
   return (data as PublicProfile | null) ?? null
 }
+
+export async function getProfileByHandle(rawHandle: string): Promise<PublicProfile | null> {
+  if (!supabase) return null
+  const { data, error } = await supabase.from('profiles').select().eq('handle', normalizeHandle(rawHandle)).maybeSingle()
+  if (error) throw new Error(error.message)
+  return (data as PublicProfile | null) ?? null
+}
+
+export async function searchProfiles(query: string, limit = 8): Promise<PublicProfile[]> {
+  if (!supabase || !query.trim()) return []
+  const q = `%${query.trim().toLowerCase()}%`
+  const { data, error } = await supabase
+    .from('profiles')
+    .select()
+    .or(`handle.ilike.${q},nickname.ilike.${q}`)
+    .limit(limit)
+  if (error) throw new Error(error.message)
+  return (data as PublicProfile[]) ?? []
+}
