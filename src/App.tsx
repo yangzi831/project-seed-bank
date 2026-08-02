@@ -1,31 +1,31 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { AISettingsPanel } from './components/AISettingsPanel'
-import { DungeonHUD } from './components/DungeonHUD'
-import { SeedRefiner } from './components/SeedRefiner'
+import { useEffect, useMemo, useState } from 'react'
 import { TopNav } from './components/TopNav'
+import { AISettingsPanel } from './components/AISettingsPanel'
+import { KeeperSelection } from './components/KeeperSelection'
+import { GlobalGardenKeeper } from './components/GlobalGardenKeeper'
+import { GardenKeeperPortal } from './components/GardenKeeperPortal'
+import { SeedRefiner } from './components/SeedRefiner'
 import {
-  createId,
   createMockProjects,
   createProjectSeed,
+  createId,
   DEMO_DATA_VERSION,
   growthAdvanceOrder,
   loadGardenState,
   saveGardenState,
 } from './data/garden'
 import type { GardenState, OutcomeType, PlantCategory, ProjectSeed, ProjectStatus, Zone, ZoneKey } from './data/garden'
-import { createInitialDungeonGame, resolveDungeonTurn, rollDungeonDice, startDungeonGame } from './game/dungeon'
-import type { FateEvent } from './game/dungeon'
-import { buildProjectContext } from './services/ai/context'
-import { assertRefineSeedOutput, callGardener } from './services/ai/gardener'
+import { createAgentContext, createGardenAgentContext } from './agent/context'
+import { requestGardenKeeper } from './agent/service'
+import type { AgentScenario, AgentSeedDraft } from './agent/types'
+import type { DemoSeedDraft } from './agent/demoConversation'
+import { loadSelectedKeeper, saveSelectedKeeper } from './data/keepers'
+import type { GardenKeeper } from './data/keepers'
 import { loadAISettings, saveAISettings } from './services/ai/settings'
-import type { RefineSeedOutput, SummarizeGrowthOutput } from './services/ai/types'
-import { DungeonBoardScene } from './three/DungeonBoardScene'
-import type { DungeonSceneMode } from './three/DungeonBoardScene'
 import { HomeView } from './views/HomeView'
 import { ListView } from './views/ListView'
 import { PlantLibraryView } from './views/PlantLibraryView'
 import { ProjectDetailView } from './views/ProjectDetailView'
-import { WorldView } from './views/WorldView'
 import { ZoneView } from './views/ZoneView'
 
 type Route =
@@ -34,27 +34,19 @@ type Route =
   | { name: 'board' }
   | { name: 'zone'; zoneId: ZoneKey }
   | { name: 'plantLibrary' }
-  | { name: 'world' }
 
 export function App() {
   const [state, setState] = useState<GardenState>(() => loadGardenState())
   const [route, setRoute] = useState<Route>(() => parseRoute(getAppPathname()))
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [selectedProjectTab, setSelectedProjectTab] = useState<'overview' | 'keeper'>('overview')
+  const [selectedAgentScenario, setSelectedAgentScenario] = useState<AgentScenario>('growth-companion')
+  const [selectedKeeper, setSelectedKeeper] = useState<GardenKeeper>(() => loadSelectedKeeper())
+  const [showKeeperSelection, setShowKeeperSelection] = useState(false)
+  const [showKeeperPortal, setShowKeeperPortal] = useState(false)
   const [aiSettings, setAISettings] = useState(() => loadAISettings())
   const [showAISettings, setShowAISettings] = useState(false)
   const [seedRefiner, setSeedRefiner] = useState<{ open: boolean; initialIdea: string }>({ open: false, initialIdea: '' })
-
-  const [game, setGame] = useState(() => createInitialDungeonGame())
-  const gameRef = useRef(game)
-  const [rolling, setRolling] = useState(false)
-  const [dice, setDice] = useState<[number, number] | null>(null)
-  const [fate, setFate] = useState<FateEvent | null>(null)
-  const [dangerFlash, setDangerFlash] = useState(false)
-  const [screenShake, setScreenShake] = useState(false)
-  const [devilEnraged, setDevilEnraged] = useState(false)
-  const [sceneReady, setSceneReady] = useState(false)
-  const effectSequence = useRef(0)
-  const effectTimers = useRef<number[]>([])
 
   useEffect(() => {
     const nextPath = withBasePath(routeToPath(route))
@@ -71,17 +63,6 @@ export function App() {
     saveGardenState(state)
   }, [state])
 
-  useEffect(() => {
-    gameRef.current = game
-  }, [game])
-
-  useEffect(() => {
-    return () => {
-      effectTimers.current.forEach((timer) => window.clearTimeout(timer))
-      effectTimers.current = []
-    }
-  }, [])
-
   const currentZone = useMemo(() => {
     if (route.name !== 'zone') return undefined
     return state.zones.find((zone) => zone.id === route.zoneId)
@@ -92,9 +73,20 @@ export function App() {
     return state.projects.find((project) => project.id === selectedProjectId)
   }, [selectedProjectId, state.projects])
 
-  const sceneMode: DungeonSceneMode = route.name === 'board' ? 'board' : route.name === 'list' || route.name === 'plantLibrary' ? 'archive' : route.name === 'zone' ? 'floor' : 'overview'
-  const activeFloor = route.name === 'zone' ? state.zones.findIndex((zone) => zone.id === route.zoneId) : undefined
-  const isWorldRoute = route.name === 'world'
+  const keeperChatContext = useMemo(() => {
+    const focusProject = currentProject ?? [...state.projects]
+      .filter((project) => route.name !== 'zone' || project.zoneId === route.zoneId)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0]
+    const focusZone = state.zones.find((zone) => zone.id === focusProject?.zoneId) ?? currentZone
+    const gardenProjects = focusZone
+      ? state.projects.filter((project) => project.zoneId === focusZone.id)
+      : state.projects
+
+    return createGardenAgentContext(
+      { projects: gardenProjects },
+      { keeper: selectedKeeper, project: focusProject, zone: focusZone },
+    )
+  }, [currentProject, currentZone, route, selectedKeeper, state.projects, state.zones])
 
   function updateZone(zoneId: ZoneKey, patch: Partial<Pick<Zone, 'displayName' | 'description'>>) {
     setState((current) => ({
@@ -122,7 +114,7 @@ export function App() {
 
   function deleteProject(projectId: string) {
     const project = state.projects.find((item) => item.id === projectId)
-    const confirmed = window.confirm(`确认让这枚火种永远熄灭吗？${project ? `\n\n${project.title}` : ''}`)
+    const confirmed = window.confirm(`确认删除这个项目吗？${project ? `\n\n${project.title}` : ''}`)
     if (!confirmed) return
 
     setState((current) => ({
@@ -183,36 +175,37 @@ export function App() {
   }
 
   async function refineSeed(messages: { role: 'user' | 'assistant'; content: string }[]): Promise<unknown> {
-    const context = state.projects.slice(0, 5).map((project) => `項目：${project.title}，狀態：${project.status}，區域：${project.zoneId}`).join('\n')
-    const response = await callGardener({
-      intent: 'refineSeed',
-      messages: [{ role: 'user', content: `現有專案參考：\n${context}\n\n${messages[messages.length - 1].content}` }],
+    const response = await requestGardenKeeper({
+      scenario: 'seed-discovery',
+      message: messages[messages.length - 1]?.content ?? '',
+      context: createGardenAgentContext(state),
     })
-    return assertRefineSeedOutput(response)
+    if (!response.suggestion.seedDraft) throw new Error('园丁没有返回可应用的项目种子')
+    return response.suggestion.seedDraft
   }
 
   async function summarizeProject(projectId: string) {
-    const project = state.projects.find((item) => item.id === projectId)
+    const project = state.projects.find((p) => p.id === projectId)
     if (!project) return
 
-    const response = await callGardener({
-      intent: 'summarizeGrowth',
-      messages: [{ role: 'user', content: buildProjectContext(project) }],
+    const response = await requestGardenKeeper({
+      scenario: 'growth-companion',
+      message: '整理这个项目目前的成长轨迹，并提出下一步。',
+      context: createAgentContext(project),
     })
-    const summary = response as SummarizeGrowthOutput
     updateProject(projectId, {
       aiSummary: {
-        summary: summary.summary,
-        obstacles: summary.obstacles,
-        nextSteps: summary.nextSteps,
-        logHash: project.logs.map((log) => log.text).join(''),
+        summary: response.suggestion.summary,
+        obstacles: response.suggestion.obstacles ?? [],
+        nextSteps: response.suggestion.points,
+        logHash: project.logs.map((l) => l.text).join(''),
         updatedAt: new Date().toISOString(),
         version: 1,
       },
     })
   }
 
-  function applyRefinedSeed(output: RefineSeedOutput) {
+  function applyRefinedSeed(output: AgentSeedDraft) {
     const project = createProjectSeed({
       zoneId: output.zoneId,
       title: output.title,
@@ -228,77 +221,36 @@ export function App() {
 
     setState((current) => ({
       ...current,
-      projects: [{ ...project, milestones: milestone ? [milestone] : [] }, ...current.projects],
+      projects: [
+        {
+          ...project,
+          milestones: milestone ? [milestone] : [],
+        },
+        ...current.projects,
+      ],
     }))
     setSeedRefiner({ open: false, initialIdea: '' })
   }
 
-  function clearEffectTimers() {
-    effectTimers.current.forEach((timer) => window.clearTimeout(timer))
-    effectTimers.current = []
+  function selectKeeper(keeper: GardenKeeper) {
+    setSelectedKeeper(keeper)
+    saveSelectedKeeper(keeper.id)
   }
 
-  function schedule(sequence: number, delay: number, action: () => void) {
-    const timer = window.setTimeout(() => {
-      if (effectSequence.current === sequence) action()
-    }, delay)
-    effectTimers.current.push(timer)
-  }
-
-  function resetTransientEffects() {
-    setDice(null)
-    setFate(null)
-    setDangerFlash(false)
-    setScreenShake(false)
-    setDevilEnraged(false)
-    setRolling(false)
-  }
-
-  function beginAdventure() {
-    effectSequence.current += 1
-    clearEffectTimers()
-    resetTransientEffects()
-    const next = startDungeonGame()
-    gameRef.current = next
-    setGame(next)
-  }
-
-  function resetAdventure() {
-    beginAdventure()
-  }
-
-  function rollFate() {
-    if (rolling || gameRef.current.winner || !gameRef.current.started) return
-    const sequence = effectSequence.current + 1
-    effectSequence.current = sequence
-    setFate(null)
-    setDangerFlash(false)
-    setScreenShake(false)
-    const rolled = rollDungeonDice()
-    setDice(rolled)
-    setRolling(true)
-
-    schedule(sequence, 900, () => {
-      const resolution = resolveDungeonTurn(gameRef.current, rolled)
-      gameRef.current = resolution.state
-      setGame(resolution.state)
-      setFate(resolution.fate ?? null)
-      if (resolution.danger) {
-        setDangerFlash(true)
-        setScreenShake(true)
-        schedule(sequence, 450, () => setScreenShake(false))
-        schedule(sequence, 700, () => setDangerFlash(false))
-      }
-      if (resolution.devilEnraged) {
-        setDevilEnraged(true)
-        schedule(sequence, 1000, () => setDevilEnraged(false))
-      }
-    })
-    schedule(sequence, 1400, () => {
-      setDice(null)
-      setRolling(false)
-    })
-    schedule(sequence, 2700, () => setFate(null))
+  const nav = {
+    goHome: () => navigate({ name: 'home' }),
+    goList: () => navigate({ name: 'list' }),
+    goBoard: () => navigate({ name: 'board' }),
+    goZone: (zoneId: ZoneKey) => navigate({ name: 'zone', zoneId }),
+    goProject: (projectId: string) => {
+      setSelectedProjectTab('overview')
+      setSelectedProjectId(projectId)
+    },
+    goKeeper: (projectId: string, scenario: AgentScenario = 'growth-companion') => {
+      setSelectedProjectTab('keeper')
+      setSelectedAgentScenario(scenario)
+      setSelectedProjectId(projectId)
+    },
   }
 
   function navigate(nextRoute: Route) {
@@ -309,73 +261,34 @@ export function App() {
     setRoute(nextRoute)
   }
 
-  const nav = {
-    goHome: () => navigate({ name: 'home' }),
-    goList: () => navigate({ name: 'list' }),
-    goBoard: () => navigate({ name: 'board' }),
-    goZone: (zoneId: ZoneKey) => navigate({ name: 'zone', zoneId }),
-    goWorld: () => navigate({ name: 'world' }),
-    goProject: (projectId: string) => setSelectedProjectId(projectId),
-  }
-
-  function openFloor(floor: number) {
-    if (floor >= 0 && floor < state.zones.length) nav.goZone(state.zones[floor].id)
-    else nav.goBoard()
-  }
-
   return (
-    <div className={`app-shell ${screenShake ? 'screen-shake' : ''}`}>
-      {!isWorldRoute && (
-        <DungeonBoardScene
-          mode={sceneMode}
-          activeFloor={activeFloor}
-          projects={state.projects}
-          players={game.players}
-          devilPosition={game.devilPosition}
-          devilEnraged={devilEnraged}
-          started={game.started}
-          onProjectOpen={nav.goProject}
-          onFloorSelect={openFloor}
-          onReady={() => setSceneReady(true)}
+    <div className="app-shell">
+      <TopNav active={route.name} onGarden={nav.goHome} onList={nav.goList} onBoard={nav.goBoard} onSettings={() => setShowAISettings(true)} />
+      {selectedKeeper && !showKeeperSelection && !showKeeperPortal && (route.name === 'home' || route.name === 'zone' || Boolean(currentProject)) && (
+        <GlobalGardenKeeper
+          keeper={selectedKeeper}
+          context={keeperChatContext}
+          onPlantSeed={(draft: DemoSeedDraft) => addProject(
+            draft.zoneId,
+            draft.projectName,
+            draft.description,
+            draft.plantCategory,
+          )}
+          onChangeKeeper={() => setShowKeeperSelection(true)}
+          onOpenCottage={() => setShowKeeperPortal(true)}
         />
       )}
-      <div className="permanent-vignette" aria-hidden="true" />
-      <div className="stone-grain" aria-hidden="true" />
-      <TopNav
-        active={route.name}
-        onGarden={nav.goHome}
-        onList={nav.goList}
-        onBoard={nav.goBoard}
-        onWorld={nav.goWorld}
-        onSettings={() => setShowAISettings(true)}
-        sceneReady={sceneReady}
-      />
-
-      {route.name === 'world' && <WorldView ownProjects={state.projects} onProjectOpen={nav.goProject} />}
-
       {route.name === 'home' && (
-        <>
-          <HomeView
-            zones={state.zones}
-            projects={state.projects}
-            onOpenZone={nav.goZone}
-            onOpenProject={nav.goProject}
-            onAddProject={addProject}
-            onDeleteProject={deleteProject}
-            onRefineSeed={(idea) => setSeedRefiner({ open: true, initialIdea: idea })}
-          />
-          <DungeonHUD
-            game={game}
-            rolling={rolling}
-            dice={dice}
-            fate={fate}
-            devilEnraged={devilEnraged}
-            projectCount={state.projects.length}
-            onStart={beginAdventure}
-            onRoll={rollFate}
-            onReset={resetAdventure}
-          />
-        </>
+        <HomeView
+          zones={state.zones}
+          projects={state.projects}
+          onOpenZone={nav.goZone}
+          onOpenProject={nav.goProject}
+          onAddProject={addProject}
+          onUpdateProject={updateProject}
+          onDeleteProject={deleteProject}
+          onRefineSeed={(idea) => setSeedRefiner({ open: true, initialIdea: idea })}
+        />
       )}
       {route.name === 'list' && (
         <ListView
@@ -405,6 +318,9 @@ export function App() {
           onBack={nav.goHome}
           onUpdateZone={updateZone}
           onAddProject={addProject}
+          onUpdateProject={updateProject}
+          onAddLog={addProjectLog}
+          onAddOutcome={addOutcome}
           onOpenProject={nav.goProject}
           onOpenZone={nav.goZone}
           onDeleteProject={deleteProject}
@@ -422,6 +338,8 @@ export function App() {
           onAdvance={advanceProject}
           onDeleteProject={deleteProject}
           onAskGardener={(projectId) => summarizeProject(projectId)}
+          initialTab={selectedProjectTab}
+          initialAgentScenario={selectedAgentScenario}
         />
       )}
       {showAISettings && (
@@ -442,20 +360,65 @@ export function App() {
           onRefine={refineSeed}
         />
       )}
-      <div className={`danger-flash ${dangerFlash ? 'is-visible' : ''}`} aria-hidden="true" />
+      {showKeeperSelection && (
+        <div className="modal-scrim keeper-selection-scrim" role="presentation" onMouseDown={() => setShowKeeperSelection(false)}>
+          <div className="keeper-selection-dialog" onMouseDown={(event) => event.stopPropagation()}>
+            <KeeperSelection
+              initialKeeperId={selectedKeeper.id}
+              onConfirm={(keeper) => {
+                selectKeeper(keeper)
+                setShowKeeperSelection(false)
+              }}
+              onCancel={() => setShowKeeperSelection(false)}
+            />
+          </div>
+        </div>
+      )}
+      {showKeeperPortal && (
+        <GardenKeeperPortal
+          projects={state.projects}
+          keeper={selectedKeeper}
+          onChangeKeeper={() => {
+            setShowKeeperPortal(false)
+            setShowKeeperSelection(true)
+          }}
+          onOpenProject={(projectId) => {
+            setShowKeeperPortal(false)
+            nav.goProject(projectId)
+          }}
+          onStartFlow={(projectId, scenario) => {
+            setShowKeeperPortal(false)
+            nav.goKeeper(projectId, scenario)
+          }}
+          onClose={() => setShowKeeperPortal(false)}
+        />
+      )}
     </div>
   )
 }
 
 function parseRoute(pathname: string): Route {
-  if (pathname === '/' || pathname === '/garden') return { name: 'home' }
-  if (pathname === '/plants' || pathname === '/plant-library') return { name: 'list' }
-  if (pathname === '/board') return { name: 'board' }
-  if (pathname === '/world' || pathname.startsWith('/room')) return { name: 'world' }
-  if (pathname === '/dev/plant-library') return { name: 'plantLibrary' }
+  if (pathname === '/' || pathname === '/garden') {
+    return { name: 'home' }
+  }
+
+  if (pathname === '/plants' || pathname === '/plant-library') {
+    return { name: 'list' }
+  }
+
+  if (pathname === '/board') {
+    return { name: 'board' }
+  }
+
+  if (pathname === '/dev/plant-library') {
+    return { name: 'plantLibrary' }
+  }
 
   const zoneMatch = pathname.match(/^\/garden\/([^/]+)$/)
-  if (zoneMatch && isZoneKey(zoneMatch[1])) return { name: 'zone', zoneId: zoneMatch[1] }
+  if (zoneMatch && isZoneKey(zoneMatch[1])) {
+    return { name: 'zone', zoneId: zoneMatch[1] }
+  }
+
   return { name: 'home' }
 }
 
@@ -463,7 +426,6 @@ function routeToPath(route: Route) {
   if (route.name === 'home') return '/garden'
   if (route.name === 'list') return '/plants'
   if (route.name === 'board') return '/board'
-  if (route.name === 'world') return '/world'
   if (route.name === 'plantLibrary') return '/dev/plant-library'
   return `/garden/${route.zoneId}`
 }

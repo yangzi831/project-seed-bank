@@ -1,4 +1,5 @@
 import type { Outcome, PlantCategory, ProjectStatus, ZoneKey } from '../data/garden'
+import type { KeeperPersonality } from '../data/keepers'
 
 export type AgentScenario = 'seed-discovery' | 'growth-companion' | 'harvest-assistant'
 
@@ -21,6 +22,20 @@ export type GardenAgentContext = {
     status: ProjectStatus
     zoneId: ZoneKey
   }>
+  currentProject?: ProjectAgentContext
+  currentGarden: {
+    id?: ZoneKey
+    name: string
+    description?: string
+  }
+  keeper: {
+    id: string
+    name: string
+    personality: KeeperPersonality
+    description: string
+    tone: string
+    recommendedUse: string
+  }
 }
 
 export type AgentContext = ProjectAgentContext | GardenAgentContext
@@ -48,7 +63,7 @@ export type AgentSuggestion = {
 export type AgentResponse = {
   requestId: string
   suggestion: AgentSuggestion
-  source: 'mock' | 'api'
+  source: 'mock' | 'api' | 'demo'
 }
 
 export type AgentSeedDraft = {

@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import type { AgentScenario } from '../agent/types'
+import { AgentPanel } from '../components/AgentPanel'
 import { PlantPicker } from '../components/PlantPicker'
 import { PlantSprite } from '../components/PlantSprite'
 import { plantCategoryMeta, statusMeta, statusOrder } from '../data/garden'
@@ -6,7 +8,7 @@ import type { OutcomeType, PlantCategory, ProjectSeed, Zone } from '../data/gard
 import { plantLibrary } from '../data/plantLibrary'
 import { publicPath } from '../utils/publicPath'
 
-type DetailTab = 'overview' | 'logs' | 'outcomes' | 'settings' | 'gardener'
+type DetailTab = 'overview' | 'keeper' | 'logs' | 'outcomes' | 'settings'
 
 type ProjectDetailViewProps = {
   project: ProjectSeed
@@ -18,6 +20,8 @@ type ProjectDetailViewProps = {
   onAdvance: (project: ProjectSeed) => void
   onDeleteProject: (projectId: string) => void
   onAskGardener?: (projectId: string) => void
+  initialTab?: 'overview' | 'keeper'
+  initialAgentScenario?: AgentScenario
 }
 
 export function ProjectDetailView({
@@ -29,9 +33,10 @@ export function ProjectDetailView({
   onAddOutcome,
   onAdvance,
   onDeleteProject,
-  onAskGardener,
+  initialTab = 'overview',
+  initialAgentScenario = 'growth-companion',
 }: ProjectDetailViewProps) {
-  const [activeTab, setActiveTab] = useState<DetailTab>('overview')
+  const [activeTab, setActiveTab] = useState<DetailTab>(initialTab)
   const [isLogOpen, setIsLogOpen] = useState(false)
   const [isOutcomeOpen, setIsOutcomeOpen] = useState(false)
   const [isPlantChooserOpen, setIsPlantChooserOpen] = useState(false)
@@ -44,11 +49,11 @@ export function ProjectDetailView({
       <main className="project-dossier glass-panel" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
         <header className="dossier-header">
           <div>
-            <p className="eyebrow">SOUL RELIC DOSSIER / {zone?.displayName ?? 'Unknown chamber'}</p>
-            <h2>火种命运档案</h2>
+            <p className="eyebrow">Growth dossier / {zone?.displayName ?? 'Unknown garden'}</p>
+            <h2>项目生长档案</h2>
           </div>
           <button className="dossier-close" type="button" onClick={onBack} aria-label="Close project detail">
-            合上石板
+            Close
           </button>
         </header>
 
@@ -76,14 +81,17 @@ export function ProjectDetailView({
         </section>
 
         <section className="dossier-actions">
+          <button className="keeper-entry-button" type="button" onClick={() => setActiveTab('keeper')}>
+            ✦ AI Garden Keeper
+          </button>
           <button type="button" onClick={() => {
             setActiveTab('logs')
             setIsLogOpen(true)
           }}>
-            刻下进展
+            记录进展
           </button>
           <button type="button" onClick={() => onAdvance(project)}>
-            推进命运
+            推进状态
           </button>
           <button type="button" onClick={() => {
             setActiveTab('settings')
@@ -91,51 +99,52 @@ export function ProjectDetailView({
             setPlantCategory(project.plantCategory)
             setSelectedVariant(project.plantVariant)
           }}>
-            更换灵植
+            更换植物
           </button>
           {project.status === 'dormant' ? (
             <button type="button" onClick={() => onUpdateProject(project.id, { status: project.previousStatus ?? 'growing', previousStatus: undefined })}>
-              解除封印
+              唤醒
             </button>
           ) : (
             <button type="button" onClick={() => onUpdateProject(project.id, { status: 'dormant', previousStatus: getRestorableStatus(project.status) })}>
-              进入沉眠
+              休眠
             </button>
           )}
           <button type="button" onClick={() => onUpdateProject(project.id, { status: 'harvested' })}>
-            逃出循环
+            收获
           </button>
           <button type="button" onClick={() => {
             setActiveTab('outcomes')
             setIsOutcomeOpen(true)
           }}>
-            供奉成果
+            添加成果
           </button>
         </section>
 
         <nav className="dossier-tabs" aria-label="Project dossier sections">
           <button className={activeTab === 'overview' ? 'active' : ''} type="button" onClick={() => setActiveTab('overview')}>
-            铭文
+            概览
+          </button>
+          <button className={activeTab === 'keeper' ? 'active keeper-tab' : 'keeper-tab'} type="button" onClick={() => setActiveTab('keeper')}>
+            ✦ 守护者
           </button>
           <button className={activeTab === 'logs' ? 'active' : ''} type="button" onClick={() => setActiveTab('logs')}>
-            墓中记忆 · {project.logs.length}
+            生长日志 · {project.logs.length}
           </button>
           <button className={activeTab === 'outcomes' ? 'active' : ''} type="button" onClick={() => setActiveTab('outcomes')}>
-            贡品 · {project.outcomes.length}
+            成果 · {project.outcomes.length}
           </button>
           <button className={activeTab === 'settings' ? 'active' : ''} type="button" onClick={() => setActiveTab('settings')}>
-            封印
-          </button>
-          <button className={activeTab === 'gardener' ? 'active' : ''} type="button" onClick={() => setActiveTab('gardener')}>
-            先知
+            设置
           </button>
         </nav>
 
         <section className="dossier-tab-panel">
+          {activeTab === 'keeper' && <AgentPanel key={`${project.id}:${initialAgentScenario}`} project={project} initialScenario={initialAgentScenario} />}
           {activeTab === 'overview' && (
             <div className="dossier-grid compact-dossier-grid">
               <div className="glass-panel">
-                  <p className="eyebrow">CURRENT FATE</p>
+                <p className="eyebrow">Current state</p>
                 <select value={project.status} onChange={(event) => onUpdateProject(project.id, { status: event.target.value as ProjectSeed['status'] })}>
                   {statusOrder.map((status) => (
                     <option key={status} value={status}>
@@ -146,24 +155,24 @@ export function ProjectDetailView({
                 <p className="plant-variant-note">{project.plantVariant ?? '未分配真实植物，使用粒子占位'}</p>
               </div>
               <div className="glass-panel">
-                  <p className="eyebrow">LATEST MEMORY</p>
-                  <p>{project.logs[0]?.text ?? '石板上还没有留下记忆。'}</p>
+                <p className="eyebrow">Latest log</p>
+                <p>{project.logs[0]?.text ?? '还没有生长日志。'}</p>
               </div>
               <div className="glass-panel">
-                  <p className="eyebrow">LATEST OFFERING</p>
-                  <p>{project.outcomes[0]?.title ?? '祭台上还没有贡品。'}</p>
+                <p className="eyebrow">Latest outcome</p>
+                <p>{project.outcomes[0]?.title ?? '还没有成果记录。'}</p>
               </div>
               {plant && (
                 <div className="glass-panel plant-detail-compare">
-                  <p className="eyebrow">RELIC FORMS</p>
+                  <p className="eyebrow">Plant states</p>
                   <div>
                     <figure>
                       <img src={publicPath(plant.mature)} alt={`${plant.chineseName} mature`} draggable={false} />
-                      <figcaption>灵植长成</figcaption>
+                      <figcaption>长成</figcaption>
                     </figure>
                     <figure>
                       <img src={publicPath(plant.growing)} alt={`${plant.chineseName} growing`} draggable={false} />
-                      <figcaption>火种初醒</figcaption>
+                      <figcaption>生长中</figcaption>
                     </figure>
                   </div>
                 </div>
@@ -184,8 +193,8 @@ export function ProjectDetailView({
                     setIsLogOpen(false)
                   }}
                 >
-                  <textarea name="log" placeholder="在石板上刻下一段新的记忆" autoFocus />
-                  <button type="submit">刻入石板</button>
+                  <textarea name="log" placeholder="写下一条新的生长记录" autoFocus />
+                  <button type="submit">保存日志</button>
                 </form>
               )}
               <div className="timeline">
@@ -197,7 +206,7 @@ export function ProjectDetailView({
                     </article>
                   ))
                 ) : (
-                  <p>石板上还没有留下记忆。</p>
+                  <p>还没有生长日志。</p>
                 )}
               </div>
             </div>
@@ -230,7 +239,7 @@ export function ProjectDetailView({
                     <option value="file">文件名/路径占位</option>
                   </select>
                   <input name="value" placeholder="链接、文字、图片 URL 或文件路径" />
-                  <button type="submit">放上祭台</button>
+                  <button type="submit">保存成果</button>
                 </form>
               )}
               <div className="outcome-list">
@@ -251,7 +260,7 @@ export function ProjectDetailView({
                     </article>
                   ))
                 ) : (
-                  <p>祭台上还没有贡品。</p>
+                  <p>还没有成果记录。</p>
                 )}
               </div>
             </div>
@@ -260,13 +269,13 @@ export function ProjectDetailView({
           {activeTab === 'settings' && (
             <div className="dossier-scroll-section">
               <div className="glass-panel settings-panel">
-                <p className="eyebrow">RELIC SEALS</p>
+                <p className="eyebrow">Project settings</p>
                 <button type="button" onClick={() => {
                   setIsPlantChooserOpen((value) => !value)
                   setPlantCategory(project.plantCategory)
                   setSelectedVariant(project.plantVariant)
                 }}>
-                  更换灵植
+                  更换植物
                 </button>
                 {isPlantChooserOpen && (
                   <div className="plant-change-panel">
@@ -289,7 +298,7 @@ export function ProjectDetailView({
                           setIsPlantChooserOpen(false)
                         }}
                       >
-                        确认换形
+                        确认替换
                       </button>
                       <button type="button" className="ghost-button" onClick={() => setIsPlantChooserOpen(false)}>
                         取消
@@ -297,54 +306,14 @@ export function ProjectDetailView({
                     </div>
                   </div>
                 )}
-                <p>熄灭火种会一并抹去命运、记忆、贡品与墓塔坐标。</p>
+                <p>删除项目会同时移除状态、日志、成果和画布坐标。</p>
                 <button className="danger-button" type="button" onClick={() => onDeleteProject(project.id)}>
-                  永久熄灭
+                  删除项目
                 </button>
               </div>
             </div>
           )}
 
-          {activeTab === 'gardener' && (
-            <div className="dossier-scroll-section">
-              <div className="glass-panel gardener-panel">
-                <p className="eyebrow">THE ORACLE BELOW</p>
-                <h3>墓中先知</h3>
-                {project.aiSummary ? (
-                  <div className="gardener-insight">
-                    <p>{project.aiSummary.summary}</p>
-                    {project.aiSummary.obstacles.length > 0 && (
-                      <>
-                        <p className="eyebrow">发现的阻碍</p>
-                        <ul>
-                          {project.aiSummary.obstacles.map((obstacle, index) => (
-                            <li key={index}>{obstacle}</li>
-                          ))}
-                        </ul>
-                      </>
-                    )}
-                    {project.aiSummary.nextSteps.length > 0 && (
-                      <>
-                        <p className="eyebrow">下一步建议</p>
-                        <ul>
-                          {project.aiSummary.nextSteps.map((step, index) => (
-                            <li key={index}>{step}</li>
-                          ))}
-                        </ul>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <p>先知还没有读过这枚火种的记忆。</p>
-                )}
-                {onAskGardener && (
-                  <button type="button" onClick={() => onAskGardener(project.id)}>
-                    请先知解读
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
         </section>
       </main>
     </div>

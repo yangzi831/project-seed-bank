@@ -6,6 +6,7 @@ import type { ProjectSeed } from '../data/garden'
 
 type AgentPanelProps = {
   project: ProjectSeed
+  initialScenario?: AgentScenario
 }
 
 const scenarios: Array<{ id: AgentScenario; name: string; description: string; prompt: string }> = [
@@ -14,9 +15,10 @@ const scenarios: Array<{ id: AgentScenario; name: string; description: string; p
   { id: 'harvest-assistant', name: 'Harvest Assistant', description: '整理项目故事与作品集描述', prompt: '帮我把这个项目整理成一段作品集介绍。' },
 ]
 
-export function AgentPanel({ project }: AgentPanelProps) {
-  const [scenario, setScenario] = useState<AgentScenario>('growth-companion')
-  const [message, setMessage] = useState(scenarios[1].prompt)
+export function AgentPanel({ project, initialScenario = 'growth-companion' }: AgentPanelProps) {
+  const initialFlow = scenarios.find((item) => item.id === initialScenario) ?? scenarios[1]
+  const [scenario, setScenario] = useState<AgentScenario>(initialFlow.id)
+  const [message, setMessage] = useState(initialFlow.prompt)
   const [suggestion, setSuggestion] = useState<AgentSuggestion | null>(null)
   const [source, setSource] = useState<AgentResponse['source']>('mock')
   const [decision, setDecision] = useState<SuggestionDecision>('pending')

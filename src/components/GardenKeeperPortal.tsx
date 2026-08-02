@@ -1,24 +1,25 @@
-import { gardenKeeperPersonalities } from '../agent/personalities'
-import type { GardenKeeperPersonality } from '../agent/personalities'
+import type { AgentScenario } from '../agent/types'
+import { keeperVisualStyle } from '../data/keepers'
+import type { GardenKeeper } from '../data/keepers'
 import { KeeperAvatar } from './KeeperAvatar'
 import { statusMeta } from '../data/garden'
 import type { ProjectSeed } from '../data/garden'
 
 type GardenKeeperPortalProps = {
   projects: ProjectSeed[]
-  personality: GardenKeeperPersonality
-  onPersonalityChange: (personality: GardenKeeperPersonality) => void
+  keeper: GardenKeeper
+  onChangeKeeper: () => void
   onOpenProject: (projectId: string) => void
-  onStartConversation: (projectId: string) => void
+  onStartFlow: (projectId: string, scenario: AgentScenario) => void
   onClose: () => void
 }
 
 export function GardenKeeperPortal({
   projects,
-  personality,
-  onPersonalityChange,
+  keeper,
+  onChangeKeeper,
   onOpenProject,
-  onStartConversation,
+  onStartFlow,
   onClose,
 }: GardenKeeperPortalProps) {
   const growing = projects.filter((project) => project.status === 'growing').length
@@ -31,37 +32,22 @@ export function GardenKeeperPortal({
 
   return (
     <div className="modal-scrim keeper-overview-scrim" role="presentation" onMouseDown={onClose}>
-      <section className={`glass-panel keeper-cottage keeper-${personality.style}`} role="dialog" aria-modal="true" aria-labelledby="keeper-overview-title" onMouseDown={(event) => event.stopPropagation()}>
+      <section className={`glass-panel keeper-cottage keeper-${keeperVisualStyle(keeper)}`} role="dialog" aria-modal="true" aria-labelledby="keeper-overview-title" onMouseDown={(event) => event.stopPropagation()}>
         <header className="keeper-cottage-header">
-          <KeeperAvatar personality={personality} size="large" active />
+          <KeeperAvatar keeper={keeper} size="chat" active />
           <div>
             <p className="eyebrow">Garden Keeper Cottage</p>
-            <h2 id="keeper-overview-title">{personality.name}的小屋</h2>
-            <p>{personality.description}</p>
+            <h2 id="keeper-overview-title">{keeper.name}的小屋</h2>
+            <p>{keeper.description}</p>
           </div>
           <button className="dossier-close" type="button" onClick={onClose}>Close</button>
         </header>
 
-        <div className="keeper-personality-switcher" aria-label="选择 Garden Keeper">
-          {gardenKeeperPersonalities.map((option) => (
-            <button
-              key={option.id}
-              className={personality.id === option.id ? 'active' : ''}
-              type="button"
-              onClick={() => onPersonalityChange(option)}
-            >
-              <KeeperAvatar personality={option} size="small" active={personality.id === option.id} />
-              <span><strong>{option.name}</strong><small>{styleLabel(option.style)}</small></span>
-            </button>
-          ))}
-          <p><span>说话方式</span>{personality.tone}</p>
-        </div>
-
         <div className="keeper-cottage-grid">
           <section className="keeper-room keeper-today-room">
             <p className="eyebrow">今日观察</p>
-            <h3>{todayTitle(personality)}</h3>
-            <p>{todayObservation(personality, projects.length, growing, dormant)}</p>
+            <h3>{todayTitle(keeper)}</h3>
+            <p>{todayObservation(keeper, projects.length, growing, dormant)}</p>
             <div className="keeper-garden-signal">
               <span><strong>{projects.length}</strong><small>花园植物</small></span>
               <span><strong>{growing}</strong><small>正在生长</small></span>
@@ -97,30 +83,38 @@ export function GardenKeeperPortal({
               <h3>{focusProject ? `带「${focusProject.title}」来坐一会儿` : '带一颗种子来坐一会儿'}</h3>
               <p>不是闲聊。选择一种照料方式，让园丁陪你看清这株植物此刻需要什么。</p>
             </div>
-            <div className="keeper-scenario-signs" aria-label="Available Garden Keeper scenes">
-              <span>Seed Discovery</span><span>Growth Companion</span><span>Harvest Assistant</span>
+            <div className="keeper-flow-entrances" aria-label="Available Garden Keeper scenes">
+              {flowEntrances.map((flow) => (
+                <button key={flow.id} type="button" disabled={!focusProject} onClick={() => focusProject && onStartFlow(focusProject.id, flow.id)}>
+                  <strong>{flow.name}</strong><small>{flow.description}</small><em>进入 →</em>
+                </button>
+              ))}
             </div>
-            <button type="button" disabled={!focusProject} onClick={() => focusProject && onStartConversation(focusProject.id)}>
-              进入项目，与{personality.name}一起观察 →
-            </button>
           </section>
         </div>
+
+        <footer className="keeper-cottage-change">
+          <div><small>想换一个陪伴你的园丁？</small><p>每个阶段需要的陪伴可能不同，你的选择随时可以改变。</p></div>
+          <button type="button" className="ghost-button" onClick={onChangeKeeper}>选择新的园丁</button>
+        </footer>
       </section>
     </div>
   )
 }
 
-function styleLabel(style: GardenKeeperPersonality['style']) {
-  return style === 'warm-healing' ? '温暖治愈型' : '抽象未来型'
+const flowEntrances: Array<{ id: AgentScenario; name: string; description: string }> = [
+  { id: 'seed-discovery', name: 'Seed Discovery', description: '重新辨认种子的方向' },
+  { id: 'growth-companion', name: 'Growth Companion', description: '阅读成长与下一步' },
+  { id: 'harvest-assistant', name: 'Harvest Assistant', description: '整理可以分享的故事' },
+]
+
+function todayTitle(keeper: GardenKeeper) {
+  return keeperVisualStyle(keeper) === 'warm-healing' ? '花园不需要同时开花' : '今日信号正在重新排列'
 }
 
-function todayTitle(personality: GardenKeeperPersonality) {
-  return personality.style === 'warm-healing' ? '花园不需要同时开花' : '今日信号正在重新排列'
-}
-
-function todayObservation(personality: GardenKeeperPersonality, total: number, growing: number, dormant: number) {
-  if (!total) return personality.style === 'warm-healing' ? '土壤已经准备好了。第一颗种子只需要一个愿意靠近的问题。' : '花园当前是一片开放空间。第一个坐标将定义它最初的引力。'
-  if (personality.style === 'abstract-future') return `检测到 ${growing} 个生长信号与 ${dormant} 个静默信号。今天可以选择一个微小变量，让花园产生新的方向。`
+function todayObservation(keeper: GardenKeeper, total: number, growing: number, dormant: number) {
+  if (!total) return keeperVisualStyle(keeper) === 'warm-healing' ? '土壤已经准备好了。第一颗种子只需要一个愿意靠近的问题。' : '花园当前是一片开放空间。第一个坐标将定义它最初的引力。'
+  if (keeperVisualStyle(keeper) === 'abstract-future') return `检测到 ${growing} 个生长信号与 ${dormant} 个静默信号。今天可以选择一个微小变量，让花园产生新的方向。`
   if (dormant > growing) return '花园最近安静了一些。休眠不是停滞，也许有一株植物只是在等待一句近况。'
   return '有些植物向外伸展，有些在地下积蓄。今天不用照料全部，只需要回应最有生命力的一株。'
 }
