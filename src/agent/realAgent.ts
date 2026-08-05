@@ -53,7 +53,7 @@ function suggestionFromProvider(request: AgentRequest, data: unknown): AgentSugg
   const harvest = assertGenerateHarvestOutput(data)
   return {
     ...base,
-    eyebrow: 'Harvest Assistant',
+    eyebrow: 'Creation Companion',
     title: '把成长整理成可以分享的故事',
     summary: harvest.summary,
     points: harvest.highlights,

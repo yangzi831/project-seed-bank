@@ -51,7 +51,7 @@ export function GardenKeeperPortal({
             <div className="keeper-garden-signal">
               <span><strong>{projects.length}</strong><small>花园植物</small></span>
               <span><strong>{growing}</strong><small>正在生长</small></span>
-              <span><strong>{dormant}</strong><small>安静休眠</small></span>
+              <span><strong>{dormant}</strong><small>休眠中</small></span>
             </div>
           </section>
 
@@ -63,7 +63,7 @@ export function GardenKeeperPortal({
 
           <section className="keeper-room keeper-focus-room">
             <div className="keeper-project-heading">
-              <div><p className="eyebrow">最近关注项目</p><h3>小屋窗边的植物</h3></div>
+              <div><p className="eyebrow">最近关注的想法</p><h3>小屋窗边的植物</h3></div>
               <small>按最近更新时间排列</small>
             </div>
             <div className="keeper-project-signals">
@@ -103,9 +103,9 @@ export function GardenKeeperPortal({
 }
 
 const flowEntrances: Array<{ id: AgentScenario; name: string; description: string }> = [
-  { id: 'seed-discovery', name: 'Seed Discovery', description: '重新辨认种子的方向' },
-  { id: 'growth-companion', name: 'Growth Companion', description: '阅读成长与下一步' },
-  { id: 'harvest-assistant', name: 'Harvest Assistant', description: '整理可以分享的故事' },
+  { id: 'seed-discovery', name: 'Seed Discovery', description: '帮助发现和整理新的想法' },
+  { id: 'growth-companion', name: 'Growth Companion', description: '陪伴想法成长，观察植物的生长阶段' },
+  { id: 'harvest-assistant', name: 'Creation Companion', description: '陪想法逐渐形成清晰的作品表达' },
 ]
 
 function todayTitle(keeper: GardenKeeper) {
@@ -120,9 +120,9 @@ function todayObservation(keeper: GardenKeeper, total: number, growing: number, 
 }
 
 function recommendedActions(projects: ProjectSeed[], growing: number, dormant: number) {
-  const actions = ['为最近更新的项目写下一句生长记录']
-  if (growing > 3) actions.push('从正在生长的项目中，只选择一个作为今日重点')
+  const actions = ['为最近生长的想法写下一句成长记录']
+  if (growing > 3) actions.push('从正在生长的想法中，只选择一株作为今日重点')
   if (dormant) actions.push('看看一株休眠植物，确认它需要继续安静还是重新唤醒')
-  if (!projects.some((project) => project.outcomes.length)) actions.push('为一个成熟项目补充第一项可见成果')
+  if (!projects.some((project) => project.outcomes.length)) actions.push('为一颗成熟的想法补充第一项作品表达')
   return actions.slice(0, 3)
 }

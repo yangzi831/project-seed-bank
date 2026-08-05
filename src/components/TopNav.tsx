@@ -70,17 +70,17 @@ export function TopNav({
   return (
     <header className="top-nav">
       <button className="brand-mark" type="button" onClick={onGarden}>
-        Project Seed Bank
+        Bloom
       </button>
       <nav aria-label="Primary">
-        <button className={active === 'home' || active === 'zone' ? 'active' : ''} type="button" onClick={onGarden}>
+        <button className={active === 'home' || active === 'zone' || active === 'universe' ? 'active' : ''} type="button" onClick={onGarden}>
           Garden
         </button>
         <button className={active === 'list' ? 'active' : ''} type="button" onClick={onList}>
           Plants
         </button>
         <button className={active === 'board' ? 'active' : ''} type="button" onClick={onBoard}>
-          Board
+          Growth
         </button>
       </nav>
       <div className="top-nav-actions">

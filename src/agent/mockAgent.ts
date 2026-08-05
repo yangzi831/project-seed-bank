@@ -3,7 +3,7 @@ import type { AgentRequest, AgentSeedDraft, AgentSuggestion, GardenKeeperAgent, 
 const scenarioMeta = {
   'seed-discovery': { eyebrow: 'Seed Discovery', title: '让这颗种子有一个可以开始的形状' },
   'growth-companion': { eyebrow: 'Growth Companion', title: '读一读最近的生长轨迹' },
-  'harvest-assistant': { eyebrow: 'Harvest Assistant', title: '把成长整理成可以分享的故事' },
+  'harvest-assistant': { eyebrow: 'Creation Companion', title: '整理这颗想法已经形成的内容' },
 } as const
 
 export const mockGardenKeeperAgent: GardenKeeperAgent = {
@@ -27,7 +27,7 @@ function buildMockSuggestion(request: AgentRequest): AgentSuggestion {
     return suggestion(
       meta,
       scenario,
-      [`花园中共有 ${context.projects.length} 个项目。`, `${growing} 个正在生长，${dormant} 个正在休眠。`],
+      [`花园中共有 ${context.projects.length} 颗想法。`, `${growing} 颗正在生长，${dormant} 颗正在休眠。`],
       gardenObservation(context.projects.length, growing, dormant),
       undefined,
     )
@@ -41,25 +41,25 @@ function buildMockSuggestion(request: AgentRequest): AgentSuggestion {
   if (scenario === 'seed-discovery') {
     return suggestion(meta, scenario, [
       `先把目标收窄为：用一次小实验验证「${project.title}」最重要的价值。`,
-      `第一步只准备一个可见成果；目前已有 ${project.outcomes.length} 条成果记录，可以从最轻量的形式开始。`,
-      '给这颗种子设一个观察信号：完成后，你希望自己或别人发生什么变化？',
-    ], `${project.title} 是一颗从“${shorten(project.description || '还没有写下描述', 58)}”出发的项目种子。${userSignal}`, undefined, createMockSeedDraft(project, message))
+      `第一步只关注一个可以感受到的变化；目前已有 ${project.outcomes.length} 条成果记录，可以从最轻量的形式开始。`,
+      '给这颗种子设一个观察信号：当它出现时，你希望自己或别人感受到什么变化？',
+    ], `${project.title} 是一颗从“${shorten(project.description || '还没有写下故事', 58)}”出发的想法。${userSignal}`, undefined, createMockSeedDraft(project, message))
   }
 
   if (scenario === 'growth-companion') {
     return suggestion(meta, scenario, [
-      latestLog ? `最近的生长信号是：“${shorten(latestLog, 64)}”` : '目前还没有生长日志，先记录一次最近做过的最小行动。',
-      `项目现在处于「${statusLabel(project.status)}」，已有 ${project.logs.length} 条日志和 ${project.outcomes.length} 条成果。`,
-      '下一步建议：选择一个 30 分钟内能完成的动作，并在完成后记录“发生了什么”和“学到了什么”。',
-    ], `从现有记录看，这个项目仍在形成自己的节奏。档案最近更新于 ${updatedDate}。${userSignal}`, undefined)
+      latestLog ? `最近的生长信号是：“${shorten(latestLog, 64)}”` : '目前还没有成长记录，先写下最近发生的一个微小变化。',
+      `这颗想法现在处于「${statusLabel(project.status)}」，已有 ${project.logs.length} 条成长记录和 ${project.outcomes.length} 项成果记录。`,
+      '下一步建议：选择一个 30 分钟内可以开始的生长行动，并在行动后记录“发生了什么”和“学到了什么”。',
+    ], `从现有记录看，这颗想法仍在形成自己的节奏。档案最近更新于 ${updatedDate}。${userSignal}`, undefined)
   }
 
-  const portfolioDraft = `《${project.title}》始于 ${createdDate}，关注${project.description ? `“${project.description}”` : '一个仍在生长的个人命题'}。在持续记录与迭代中，我将零散想法整理为可观察的项目过程，并沉淀了 ${project.outcomes.length} 项阶段成果。`
+  const portfolioDraft = `《${project.title}》始于 ${createdDate}，关注${project.description ? `“${project.description}”` : '一个仍在生长的个人命题'}。在持续记录与探索中，我让零散想法逐渐形成可见表达，并记录下 ${project.outcomes.length} 项已经形成的内容。`
 
   return suggestion(meta, scenario, [
     '介绍结构可以依次讲：为什么开始、如何探索、产生了什么、接下来会怎样。',
-    `从 ${project.logs.length} 条生长日志中挑选一个转折点，让故事呈现真实变化。`,
-    project.outcomes.length ? `选择最能代表项目的 1 项成果作为展示入口。` : '先补充一个可展示的成果，再完成最终项目介绍。',
+    `从 ${project.logs.length} 条成长记录中挑选一个转折点，让故事呈现真实变化。`,
+    project.outcomes.length ? `选择最能代表这颗想法的 1 项作品或内容作为表达入口。` : '先补充一项成果记录，再把它整理成作品表达。',
   ], `我先根据当前档案整理了一版温和、简洁的作品集描述。${userSignal}`, portfolioDraft)
 }
 
@@ -92,7 +92,7 @@ function suggestion(
 }
 
 function statusLabel(status: ProjectAgentContext['status']) {
-  return { growing: '生长中', mature: '长成', dormant: '休眠', harvested: '已收获' }[status]
+  return { growing: '成长中', mature: '形成中', dormant: '休眠中', harvested: '已形成' }[status]
 }
 
 function getProjectContext(context: AgentRequest['context'], message: string): ProjectAgentContext {
@@ -102,7 +102,7 @@ function getProjectContext(context: AgentRequest['context'], message: string): P
   return {
     kind: 'project',
     projectId: 'new-seed',
-    title: shorten(message.trim() || '新的项目种子', 15),
+    title: shorten(message.trim() || '新的想法', 15),
     description: message.trim(),
     status: 'growing',
     logs: [],
@@ -114,13 +114,13 @@ function getProjectContext(context: AgentRequest['context'], message: string): P
 
 function createMockSeedDraft(project: ProjectAgentContext, message: string): AgentSeedDraft {
   return {
-    title: shorten(project.title || message || '新的项目种子', 15),
+    title: shorten(project.title || message || '新的想法', 15),
     description: project.description || message,
     zoneId: 'experiment',
     plantCategory: 'uncategorized',
     goal: `验证「${shorten(project.title, 24)}」是否值得继续生长`,
     tags: ['待探索'],
-    firstMilestone: '完成一次最小可见实验',
+    firstMilestone: '做一次最小可见实验',
   }
 }
 

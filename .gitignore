@@ -16,6 +16,10 @@ dist-ssr
 .env.*
 !.env.example
 
+# Local temporary files
+tmp/
+transparent-fairies.zip
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

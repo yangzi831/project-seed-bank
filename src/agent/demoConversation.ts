@@ -1,16 +1,16 @@
 import type { PlantCategory, ZoneKey } from '../data/garden'
 
 export const demoPresetQuestions = [
-  '帮我看看最近的项目',
+  '帮我看看最近的想法',
   '整理我的想法',
   '下一步应该做什么',
   '看看有什么被遗忘的种子',
-  '帮我整理一下项目成果',
+  '帮我整理一下想法已经形成的内容',
   '我有一个新想法，帮我种下一颗种子',
-  '哪些项目正在休眠？我想重新开始做',
+  '哪些想法正在休眠？我想重新开始',
 ] as const
 
-export const dormantProjectFollowUp = '你帮我看看哪个在休眠，我想把它重新开始做'
+export const dormantProjectFollowUp = '帮我看看哪个想法在休眠，我想重新照料它'
 export const seedCreationIdea = '最近想做一个声音和植物互动的装置'
 
 export type DemoSeedDraft = {
@@ -32,20 +32,20 @@ export const seedCreationDraft: DemoSeedDraft = {
 }
 
 const demoResponses: Record<(typeof demoPresetQuestions)[number], string> = {
-  '帮我看看最近的项目': `云眠 Claudia：
+  '帮我看看最近的想法': `云眠 Claudia：
 
 我看到了你最近照料的几株种子。
 
-最近更新比较活跃的是「Project Seed Bank」。
+最近生长比较活跃的是「Bloom」。
 它正在经历一次新的生长期。
 
-当前花园状态：
-- 共 32 个项目
-- 13 个项目正在生长
-- 4 个项目处于休眠
+当前花园生长信号：
+- 共 32 颗想法
+- 13 颗想法正在成长
+- 4 颗想法处于休眠中
 
 最近比较值得关注的是：
-「Project Seed Bank」
+「Bloom」
 它已经有清晰方向，现在更适合继续补充细节，而不是重新开始。
 
 我也发现有一些沉睡的种子，也许值得重新唤醒。`,
@@ -60,10 +60,10 @@ const demoResponses: Record<(typeof demoPresetQuestions)[number], string> = {
 🌱 萌芽中的种子：
 还在探索方向，适合继续记录。
 
-🌿 正在生长的项目：
+🌿 正在生长的想法：
 已经有基础，需要持续投入。
 
-🌳 接近成熟的项目：
+🌳 正在形成的想法：
 可以考虑展示、发布或者转化。
 
 有时候不用马上决定一个想法的终点。
@@ -74,13 +74,13 @@ const demoResponses: Record<(typeof demoPresetQuestions)[number], string> = {
 
 现在最大的挑战不是缺少新的种子，而是已有的植物需要更多照料。
 
-我建议今天只完成一个小动作：
+我建议今天只做一个小动作：
 
-🌿 选择一个正在生长中的项目
+🌿 选择一颗正在生长的想法
 ✍️ 写下一条新的成长记录
 🔎 找到当前最大的一个阻碍
 
-不需要一次完成整个项目。
+不需要一次让整个想法成形。
 一次小小的照料，也会让它继续生长。`,
   '看看有什么被遗忘的种子': `云眠 Claudia：
 
@@ -102,33 +102,33 @@ const demoResponses: Record<(typeof demoPresetQuestions)[number], string> = {
 也许只需要问自己：
 
 “如果今天重新打开它，我最想改变什么？”`,
-  '帮我整理一下项目成果': `云眠 Claudia：
+  '帮我整理一下想法已经形成的内容': `云眠 Claudia：
 
-我帮你整理了一份花园收获记录。
+我帮你整理了一下这颗想法已经长出的部分。
 
-🌱 项目：
-Project Seed Bank
+🌱 想法：
+Bloom
 
-当前状态：
-生长中
+当前生长阶段：
+成长中
 
 核心想法：
-将创意项目转化为可以持续培养的数字植物，让用户观察自己的创造过程。
+让创作想法、灵感碎片和未完成的探索成为可以持续培养的数字植物。
 
-已完成：
+已经长出的部分：
 ✓ 花园空间设计
 ✓ 植物成长系统
 ✓ Garden Keeper 角色系统
 
 下一阶段：
-让园丁真正参与项目成长，成为长期陪伴的创造伙伴。`,
+让园丁真正参与想法成长，成为长期陪伴的创造伙伴。`,
   '我有一个新想法，帮我种下一颗种子': `云眠 Claudia：
 
 当然可以。
 
 先把这个还模糊的念头交给我吧。
-你最近想做一个什么样的项目？`,
-  '哪些项目正在休眠？我想重新开始做': `云眠 Claudia：
+你最近想种下一个什么样的想法？`,
+  '哪些想法正在休眠？我想重新开始': `云眠 Claudia：
 
 我看见目前有 4 颗种子正处于休眠状态。
 
@@ -154,7 +154,7 @@ const dormantProjectResponse = `云眠 Claudia：
 
 🍂 Life Museum
 
-这个项目之前已经完成了一部分展览空间设计和 AI 陪伴概念，但最近没有继续推进。
+这个想法之前已经形成了一部分展览空间设计和 AI 陪伴概念，但最近没有继续生长。
 
 它并没有消失，只是进入了休眠期。
 
@@ -177,12 +177,27 @@ export function getDormantProjectDemoResponse(message: string, recentProjectsDem
 }
 
 export function getSeedCreationDemoResponse(message: string, seedCreationStarted: boolean) {
-  if (!seedCreationStarted || message !== seedCreationIdea) return null
+  if (!seedCreationStarted || !message.trim()) return null
+  const draft = message === seedCreationIdea ? seedCreationDraft : createDemoSeedDraft(message)
   return {
     message: `云眠 Claudia：
 
 这个想法已经有了清晰的种子形状。
-我帮你整理成一张项目种子卡：`,
-    draft: seedCreationDraft,
+我帮你整理成一张想法卡：`,
+    draft,
+  }
+}
+
+function createDemoSeedDraft(message: string): DemoSeedDraft {
+  const idea = message.trim().replace(/[。！？]+$/, '')
+  const shortName = idea
+    .replace(/^(我最近|最近|我有一个|我有个|我想|想要|想)\s*/, '')
+    .replace(/^做一个\s*/, '')
+    .slice(0, 16)
+  return {
+    ...seedCreationDraft,
+    projectName: shortName || '一颗还没命名的想法',
+    type: '待探索的创作想法',
+    description: idea,
   }
 }

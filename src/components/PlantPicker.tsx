@@ -21,6 +21,10 @@ export function PlantPicker({ category, selectedVariant, onCategoryChange, onSel
 
   return (
     <section className="plant-picker-panel">
+      <div className="plant-picker-intro">
+        <div><p className="eyebrow">Living form</p><strong>为想法选择一种生命形态</strong></div>
+        <small>植物不是分类标签，而是这颗想法在花园里的身体。</small>
+      </div>
       <div className="plant-picker-toolbar">
         <div className="plant-filter-tabs" role="tablist" aria-label="Plant category">
           <button className={category === 'all' ? 'active' : ''} type="button" onClick={() => onCategoryChange('all')}>

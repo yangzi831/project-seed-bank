@@ -28,7 +28,7 @@ export function createGardenAgentContext(
     currentProject: options?.project ? createAgentContext(options.project) : undefined,
     currentGarden: options?.zone
       ? { id: options.zone.id, name: options.zone.displayName, description: options.zone.description }
-      : { name: 'Project Seed Bank' },
+      : { name: 'Bloom', description: '一个让想法生长的 AI 花园。' },
     keeper: keeper
       ? {
           id: keeper.id,
@@ -42,7 +42,7 @@ export function createGardenAgentContext(
           id: 'garden-keeper',
           name: 'Garden Keeper',
           personality: '收藏陪伴型',
-          description: '陪伴项目在数字花园中持续生长。',
+          description: '陪伴想法在数字花园中持续生长。',
           tone: '温和、克制。',
           recommendedUse: '照料当前花园',
         },

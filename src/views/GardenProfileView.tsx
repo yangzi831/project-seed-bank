@@ -236,7 +236,7 @@ export function GardenProfileView({ handle, currentUserId, myProfile, onBack }: 
                         {expandedId === project.id && (
                           <div className="profile-project-expanded">
                             <div className="profile-project-detail">
-                              {project.goal && <p><strong>目标：</strong>{project.goal}</p>}
+                              {project.goal && <p><strong>生长方向：</strong>{project.goal}</p>}
                               {project.tags.length > 0 && (
                                 <p><strong>标签：</strong>{project.tags.join('、')}</p>
                               )}
@@ -249,7 +249,7 @@ export function GardenProfileView({ handle, currentUserId, myProfile, onBack }: 
                               )}
                               {project.logs.length > 0 && (
                                 <div className="profile-logs">
-                                  <strong>成长日志</strong>
+                                  <strong>成长记录</strong>
                                   <ul>
                                     {project.logs.slice(0, 10).map((log) => (
                                       <li key={log.id}>{log.text}</li>
@@ -259,7 +259,7 @@ export function GardenProfileView({ handle, currentUserId, myProfile, onBack }: 
                               )}
                               {project.outcomes.length > 0 && (
                                 <div className="profile-outcomes">
-                                  <strong>成果</strong>
+                                  <strong>成果记录</strong>
                                   <ul>
                                     {project.outcomes.map((o) => (
                                       <li key={o.id}>{o.title}</li>
@@ -314,7 +314,7 @@ export function GardenProfileView({ handle, currentUserId, myProfile, onBack }: 
         )}
 
         {(!garden || zones.length === 0) && (
-          <p className="profile-hint">这座花园还没有内容。{isOwn ? '编辑你的花园后会自动同步到这里。' : '晚点再来看看吧。'}</p>
+          <p className="profile-hint">这座花园还没有种下想法。{isOwn ? '种下第一颗想法后，它会在这里继续生长。' : '晚点再来看看吧。'}</p>
         )}
 
         <section className="guestbook">

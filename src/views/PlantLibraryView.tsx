@@ -6,9 +6,9 @@ export function PlantLibraryView() {
     <main className="page plant-library-page">
       <section className="section-heading list-heading">
         <div>
-          <p className="eyebrow">Development helper</p>
+          <p className="eyebrow">Living forms</p>
           <h1>Plant Library</h1>
-          <p>检查 raw/growing 与 raw/mature 的配对结果。脚本会按文件名排序后一一配对。</p>
+          <p>每一种植物都承载想法不同的生命气质，并呈现成长中与形成中的两种形态。</p>
         </div>
       </section>
 
@@ -25,11 +25,11 @@ export function PlantLibraryView() {
                 <div className="plant-library-pair">
                   <figure>
                     <img src={publicPath(plant.growing)} alt={`${plant.name} growing`} />
-                    <figcaption>growing</figcaption>
+                    <figcaption>成长中 / Growing</figcaption>
                   </figure>
                   <figure>
                     <img src={publicPath(plant.mature)} alt={`${plant.name} mature`} />
-                    <figcaption>mature</figcaption>
+                    <figcaption>形成中 / Blooming</figcaption>
                   </figure>
                 </div>
               </article>

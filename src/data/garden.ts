@@ -110,10 +110,10 @@ export const plantCategoryMeta: Record<PlantCategory, { label: string; tone: str
 export const plantCategories: PlantCategory[] = ['flower', 'green', 'tree', 'uncategorized']
 
 export const statusMeta: Record<ProjectStatus, { label: string; tone: string }> = {
-  growing: { label: '生长中', tone: 'cyan' },
-  mature: { label: '长成', tone: 'gold' },
-  dormant: { label: '休眠', tone: 'violet' },
-  harvested: { label: '已收获', tone: 'rose' },
+  growing: { label: '成长中', tone: 'cyan' },
+  mature: { label: '形成中', tone: 'gold' },
+  dormant: { label: '休眠中', tone: 'violet' },
+  harvested: { label: '已形成', tone: 'rose' },
 }
 
 export const statusOrder: ProjectStatus[] = ['growing', 'mature', 'dormant', 'harvested']
@@ -126,7 +126,7 @@ export const defaultZones: Zone[] = [
     defaultName: 'Garden 01',
     displayName: 'Garden 01',
     subtitle: '花园区',
-    description: '适合安放细腻、审美驱动、需要持续照料的项目种子。',
+    description: '适合安放细腻、审美驱动、需要持续照料的创作想法。',
     image: '/images/garden/zone-flower.png',
     position: { left: 9, top: 25, width: 24, height: 34 },
   },
@@ -135,7 +135,7 @@ export const defaultZones: Zone[] = [
     defaultName: 'Garden 02',
     displayName: 'Garden 02',
     subtitle: '水镜区',
-    description: '适合安放反思、记录、流动性探索和长期沉淀的项目。',
+    description: '适合安放反思、记录、流动性探索和长期沉淀的想法。',
     image: '/images/garden/zone-water.png',
     position: { left: 36, top: 15, width: 25, height: 31 },
   },
@@ -144,7 +144,7 @@ export const defaultZones: Zone[] = [
     defaultName: 'Garden 03',
     displayName: 'Garden 03',
     subtitle: '展园区',
-    description: '适合安放正在成形、值得展示和打磨表达方式的项目。',
+    description: '适合安放正在成形、值得展示和打磨表达方式的想法。',
     image: '/images/garden/zone-exhibition.png',
     position: { left: 64, top: 22, width: 25, height: 34 },
   },
@@ -153,7 +153,7 @@ export const defaultZones: Zone[] = [
     defaultName: 'Garden 04',
     displayName: 'Garden 04',
     subtitle: '林地区',
-    description: '适合安放需要自然扩张、积累素材和形成系统的项目。',
+    description: '适合安放需要自然扩张、积累素材和形成系统的想法。',
     image: '/images/garden/zone-woodland.png',
     position: { left: 16, top: 61, width: 34, height: 28 },
   },
@@ -162,7 +162,7 @@ export const defaultZones: Zone[] = [
     defaultName: 'Garden 05',
     displayName: 'Garden 05',
     subtitle: '实验区',
-    description: '适合安放不确定、快速试验、允许失败和变异的项目。',
+    description: '适合安放不确定、快速试验、允许失败和变异的想法。',
     image: '/images/garden/zone-experiment.png',
     position: { left: 53, top: 58, width: 33, height: 29 },
   },
@@ -293,7 +293,7 @@ export function createMockProjects(): ProjectSeed[] {
     },
     {
       title: '作品集改版',
-      description: '重新梳理项目叙事、页面结构和视觉风格，做一个更完整的作品集网站。',
+      description: '重新梳理作品叙事、页面结构和视觉风格，让这颗想法长成更完整的作品集网站。',
       zoneId: 'exhibition',
       plantCategory: 'flower',
       status: 'growing',
@@ -307,7 +307,7 @@ export function createMockProjects(): ProjectSeed[] {
     },
     {
       title: '英语表达训练',
-      description: '围绕工作介绍、项目讲解和面试场景，每周练习一组表达。',
+      description: '围绕工作介绍、创意讲解和面试场景，每周练习一组表达。',
       zoneId: 'flower',
       plantCategory: 'flower',
       status: 'growing',
@@ -321,7 +321,7 @@ export function createMockProjects(): ProjectSeed[] {
     },
     {
       title: '周报整理器',
-      description: '把一周的任务、会议和进展自动整理成可复制的周报草稿。',
+      description: '把一周的行动、会议和进展自动整理成可复制的周报草稿。',
       zoneId: 'experiment',
       plantCategory: 'green',
       status: 'mature',
@@ -384,7 +384,7 @@ export function createMockProjects(): ProjectSeed[] {
     },
     {
       title: '练琴恢复计划',
-      description: '把练习目标拆成小任务，记录每天练了什么和下一次要补哪里。',
+      description: '把练习目标拆成小步骤，记录每天练了什么和下一次要补哪里。',
       zoneId: 'flower',
       plantCategory: 'green',
       status: 'growing',
@@ -440,7 +440,7 @@ export function createMockProjects(): ProjectSeed[] {
     },
     {
       title: '复盘模板库',
-      description: '为黑客松、作品集和工作项目准备一套可复用的复盘问题模板。',
+      description: '为黑客松、作品集和工作中的创意实践准备一套可复用的复盘问题模板。',
       zoneId: 'exhibition',
       plantCategory: 'tree',
       status: 'harvested',
@@ -461,7 +461,7 @@ export function createMockProjects(): ProjectSeed[] {
     },
     {
       title: '视觉参考图谱',
-      description: '按色彩、构图、字体和氛围整理设计参考，方便做项目时快速调用。',
+      description: '按色彩、构图、字体和氛围整理设计参考，方便创作时快速调用。',
       zoneId: 'woodland',
       plantCategory: 'flower',
       status: 'growing',
@@ -475,14 +475,14 @@ export function createMockProjects(): ProjectSeed[] {
     },
     {
       title: '文件搜索助手',
-      description: '尝试做一个能帮我快速找到旧资料、旧图片和旧项目文件的小工具。',
+      description: '尝试做一个能帮我快速找到旧资料、旧图片和旧创作文件的小工具。',
       zoneId: 'experiment',
       plantCategory: 'tree',
       status: 'dormant',
     },
     {
       title: '作品发布计划',
-      description: '把一个项目从草稿、截图、文案到发布渠道拆成可执行步骤。',
+      description: '把一颗想法从草稿、截图、文案到发布渠道整理成可执行步骤。',
       zoneId: 'exhibition',
       plantCategory: 'green',
       status: 'mature',
@@ -530,9 +530,9 @@ export function createMockProjects(): ProjectSeed[] {
           ? [
               {
                 id: createId('outcome'),
-                title: '初始成果占位',
+                title: '初始成果记录',
                 type: 'text',
-                value: '这里会记录未来的外部链接、文字成果、图片链接或文件路径。',
+                value: '这里会记录未来的外部链接、文字作品、图片链接或文件路径。',
                 createdAt: project.createdAt,
               },
             ]

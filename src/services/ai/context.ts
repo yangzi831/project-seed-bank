@@ -4,10 +4,10 @@ import { statusMeta } from '../../data/garden'
 export function buildProjectContext(project: ProjectSeed): string {
   const lines: string[] = []
 
-  lines.push(`项目标题：${project.title}`)
-  lines.push(`项目状态：${statusMeta[project.status].label}`)
-  if (project.goal) lines.push(`项目目标：${project.goal}`)
-  if (project.description) lines.push(`项目描述：${project.description}`)
+  lines.push(`想法名称：${project.title}`)
+  lines.push(`生长阶段：${statusMeta[project.status].label}`)
+  if (project.goal) lines.push(`生长方向：${project.goal}`)
+  if (project.description) lines.push(`想法故事：${project.description}`)
   if (project.tags.length > 0) lines.push(`标签：${project.tags.join('、')}`)
 
   if (project.milestones.length > 0) {
@@ -19,14 +19,14 @@ export function buildProjectContext(project: ProjectSeed): string {
 
   if (project.logs.length > 0) {
     const recentLogs = project.logs.slice(0, 20)
-    lines.push('最近成长日志：')
+    lines.push('最近成长记录：')
     recentLogs.forEach((log) => {
       lines.push(`- ${log.text}`)
     })
   }
 
   if (project.outcomes.length > 0) {
-    lines.push('已记录成果：')
+    lines.push('已记录的成果：')
     project.outcomes.slice(0, 10).forEach((outcome) => {
       lines.push(`- ${outcome.title}: ${outcome.value}`)
     })
@@ -38,13 +38,13 @@ export function buildProjectContext(project: ProjectSeed): string {
 export function buildGardenContext(state: GardenState): string {
   const lines: string[] = []
 
-  lines.push(`花园中共有 ${state.projects.length} 个项目。`)
+  lines.push(`花园中共有 ${state.projects.length} 颗想法。`)
 
   state.zones.forEach((zone) => {
     const zoneProjects = state.projects.filter((p) => p.zoneId === zone.id)
     if (zoneProjects.length > 0) {
       lines.push(`\n区域「${zone.displayName}」：${zone.description}`)
-      lines.push(`当前项目：${zoneProjects.map((p) => p.title).join('、')}`)
+      lines.push(`当前想法：${zoneProjects.map((p) => p.title).join('、')}`)
     }
   })
 

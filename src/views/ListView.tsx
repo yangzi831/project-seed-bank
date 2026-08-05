@@ -59,7 +59,7 @@ export function ListView({ zones, projects, boardMode = false, onOpenProject, on
           <aside className="glass-panel list-filter-sidebar">
             <p className="eyebrow">Plant overview</p>
             <h1>All Plants</h1>
-            <p>固定 24 株数字植物资产，查看生长中与长成两种状态。</p>
+            <p>24 株数字植物，为不同想法承载成长中与形成中的生命形态。</p>
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索植物名" />
             <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value as PlantCategory | 'all')}>
               <option value="all">全部植物类型</option>
@@ -105,11 +105,11 @@ export function ListView({ zones, projects, boardMode = false, onOpenProject, on
               <div className="plant-state-compare">
                 <figure>
                   <img src={publicPath(selectedPlant.growing)} alt={`${selectedPlant.chineseName} growing`} draggable={false} />
-                  <figcaption>生长中 / Growing</figcaption>
+                  <figcaption>成长中 / Growing</figcaption>
                 </figure>
                 <figure>
                   <img src={publicPath(selectedPlant.mature)} alt={`${selectedPlant.chineseName} mature`} draggable={false} />
-                  <figcaption>长成 / Mature</figcaption>
+                  <figcaption>形成中 / Blooming</figcaption>
                 </figure>
               </div>
             </section>
@@ -123,10 +123,10 @@ export function ListView({ zones, projects, boardMode = false, onOpenProject, on
     <main className="page list-page board-page">
       <section className="list-workbench">
         <aside className="glass-panel list-filter-sidebar">
-          <p className="eyebrow">Growth status board</p>
-          <h1>Growth Board</h1>
-          <p>按成长状态查看项目流转。</p>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索项目名" />
+          <p className="eyebrow">Idea Growth</p>
+          <h1>My Garden</h1>
+          <p>按生长阶段查看每一株想法。</p>
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索想法" />
           <select value={zoneFilter} onChange={(event) => setZoneFilter(event.target.value)}>
             <option value="all">全部区域</option>
             {zones.map((zone) => (
@@ -136,7 +136,7 @@ export function ListView({ zones, projects, boardMode = false, onOpenProject, on
             ))}
           </select>
           <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-            <option value="all">全部状态</option>
+            <option value="all">全部生长阶段</option>
             {statusOrder.map((status) => (
               <option key={status} value={status}>
                 {statusMeta[status].label}
@@ -152,9 +152,9 @@ export function ListView({ zones, projects, boardMode = false, onOpenProject, on
             ))}
           </select>
           <button className="ghost-button small subtle-action" type="button" onClick={onGenerateMockProjects}>
-            生成示例项目
+            生成示例想法
           </button>
-          <small>{filtered.length} projects matched</small>
+          <small>{filtered.length} ideas growing</small>
         </aside>
 
         <section className="list-results">

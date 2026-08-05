@@ -1,6 +1,9 @@
 import { useMemo, useRef, useState } from 'react'
 import { CanvasStage } from '../components/CanvasStage'
 import { DraggablePlant } from '../components/DraggablePlant'
+import { FragmentIdeaPrototype } from '../components/FragmentIdeaPrototype'
+import { IdeaEntryModes } from '../components/IdeaEntryModes'
+import type { IdeaEntryMode } from '../components/IdeaEntryModes'
 import { PlantPicker } from '../components/PlantPicker'
 import { ProjectCard } from '../components/ProjectCard'
 import { getRandomPlantVariant, statusMeta, statusOrder } from '../data/garden'
@@ -70,6 +73,7 @@ type HomeViewProps = {
 
 export function HomeView({ zones, projects, onOpenZone, onOpenProject, onAddProject, onUpdateProject, onDeleteProject, onRefineSeed }: HomeViewProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [ideaEntryMode, setIdeaEntryMode] = useState<IdeaEntryMode>('write')
   const [selectedZoneId, setSelectedZoneId] = useState<ZoneKey>('flower')
   const [selectedCategory, setSelectedCategory] = useState<PlantCategory | 'all'>('all')
   const [selectedVariant, setSelectedVariant] = useState<string | undefined>(() => getRandomPlantVariant('uncategorized'))
@@ -98,22 +102,22 @@ export function HomeView({ zones, projects, onOpenZone, onOpenProject, onAddProj
       <section className="workbench-grid garden-workbench">
         <aside className="workbench-sidebar left-sidebar">
           <div className="glass-panel sidebar-section">
-            <h1>Project Seed Bank</h1>
-            <p className="home-product-identity">AI 灵感庄园</p>
+            <h1>Bloom</h1>
+            <p className="home-product-identity">一个让想法生长的 AI 花园。</p>
             <p className="home-product-promise">让每一个想法，都拥有继续生长的空间。</p>
-            <p className="home-product-description">记录、培养和重新发现你的创意项目。</p>
+            <p className="home-product-description">记录创作灵感、未来计划和未完成的探索。</p>
           </div>
 
           <section className="glass-panel sidebar-section" aria-label="Garden statistics">
             <p className="eyebrow">庄园状态</p>
             <div className="sidebar-stats">
-              <Stat label="总数" value={summary.total} />
-              <Stat label="生长中" value={summary.growing} />
-              <Stat label="长成" value={summary.mature} />
-              <Stat label="休眠" value={summary.dormant} />
-              <Stat label="已收获" value={summary.harvested} />
+              <Stat label="想法" value={summary.total} />
+              <Stat label="成长中" value={summary.growing} />
+              <Stat label="形成中" value={summary.mature} />
+              <Stat label="休眠中" value={summary.dormant} />
+              <Stat label="已形成" value={summary.harvested} />
             </div>
-            <span className="recent-update compact">最近更新：{recentlyUpdated?.title ?? '暂无项目'}</span>
+            <span className="recent-update compact">最近生长：{recentlyUpdated?.title ?? '暂无想法'}</span>
           </section>
 
           <section className="glass-panel sidebar-section">
@@ -131,7 +135,7 @@ export function HomeView({ zones, projects, onOpenZone, onOpenProject, onAddProj
                 />
                 ))
               ) : (
-                <div className="empty-panel">还没有项目。先种下一株正在生长的植物。</div>
+                <div className="empty-panel">花园还是空的。先种下一颗想法。</div>
               )}
             </div>
           </section>
@@ -142,9 +146,9 @@ export function HomeView({ zones, projects, onOpenZone, onOpenProject, onAddProj
             <div>
               <p className="eyebrow">Garden overview</p>
               <h2>庄园总览</h2>
-              <small className="toolbar-hint">选择一个区域，进入你的项目生长场。</small>
+              <small className="toolbar-hint">选择一个区域，进入你的想法生长空间。</small>
             </div>
-            <div className="toolbar-filter-group" aria-label="Status filters">
+            <div className="toolbar-filter-group" aria-label="Growth stage filters">
               <button className={statusFilter === 'all' ? 'active' : ''} type="button" onClick={() => setStatusFilter('all')}>
                 全部
               </button>
@@ -159,14 +163,14 @@ export function HomeView({ zones, projects, onOpenZone, onOpenProject, onAddProj
                 </button>
               ))}
             </div>
-            <button className="primary-glass-button toolbar-primary" type="button" onClick={() => setIsModalOpen(true)}>
-              种下新项目
+            <button className="primary-glass-button toolbar-primary" type="button" onClick={() => { setIdeaEntryMode('write'); setIsModalOpen(true) }}>
+              种下想法
             </button>
           </div>
           <div className="overview-frame">
             <CanvasStage ref={overviewRef} src="/images/garden/overview.png" className="overview-map main-map">
               <div className="map-grid" aria-hidden="true" />
-              <div className="overview-plants" aria-label="Projects planted in the garden">
+              <div className="overview-plants" aria-label="Ideas growing in the garden">
                 {visibleProjects.map((project) => {
                   const zoneProjects = visibleProjects.filter((item) => item.zoneId === project.zoneId)
                   const projectIndex = zoneProjects.findIndex((item) => item.id === project.id)
@@ -204,7 +208,7 @@ export function HomeView({ zones, projects, onOpenZone, onOpenProject, onAddProj
                     <span className="marker-body">
                       <strong>{zone.defaultName}</strong>
                       <small>{zone.subtitle}</small>
-                      <em>{zoneProjectCount} projects</em>
+                      <em>{zoneProjectCount} ideas</em>
                       <b className="garden-gate-cta">进入 →</b>
                     </span>
                   </button>
@@ -232,46 +236,59 @@ export function HomeView({ zones, projects, onOpenZone, onOpenProject, onAddProj
               setIsModalOpen(false)
             }}
           >
-            <p className="eyebrow">Plant from overview</p>
-            <h2>新增项目</h2>
-            <input name="title" placeholder="项目名" autoFocus />
-            <textarea name="description" placeholder="一句话描述" />
-            <select value={selectedZoneId} onChange={(event) => setSelectedZoneId(event.target.value as ZoneKey)}>
-              {zones.map((zone) => (
-                <option key={zone.id} value={zone.id}>
-                  {zone.defaultName} / {zone.subtitle}
-                </option>
-              ))}
-            </select>
-            <PlantPicker
-              category={selectedCategory}
-              selectedVariant={selectedVariant}
-              onCategoryChange={(category) => {
-                setSelectedCategory(category)
-                setSelectedVariant(category === 'all' ? getRandomPlantVariant('uncategorized') : getRandomPlantVariant(category))
-              }}
-              onSelectVariant={setSelectedVariant}
+            <header className="seed-modal-header">
+              <div><p className="eyebrow">Plant an Idea</p><h2>种下一颗想法</h2></div>
+              <button className="dossier-close" type="button" onClick={() => setIsModalOpen(false)}>Close</button>
+            </header>
+            <p className="idea-entry-lead">选择一种方式，把此刻的想法带进 Bloom。</p>
+            <IdeaEntryModes
+              activeMode={ideaEntryMode}
+              onWrite={() => setIdeaEntryMode('write')}
+              onDropFragment={() => setIdeaEntryMode('fragment')}
+              onTalkWithKeeper={onRefineSeed ? () => {
+                const form = document.querySelector('.seed-modal') as HTMLFormElement | null
+                const title = form?.querySelector<HTMLInputElement>('input[name="title"]')?.value ?? ''
+                const description = form?.querySelector<HTMLTextAreaElement>('textarea[name="description"]')?.value ?? ''
+                onRefineSeed(`${title} ${description}`.trim())
+              } : undefined}
             />
-            <div className="action-row">
-              <button type="submit">种下项目</button>
-              {onRefineSeed && (
-                <button
-                  type="button"
-                  className="ghost-button"
-                  onClick={() => {
-                    const form = document.querySelector('.seed-modal') as HTMLFormElement | null
-                    const title = form?.querySelector<HTMLInputElement>('input[name="title"]')?.value ?? ''
-                    const description = form?.querySelector<HTMLTextAreaElement>('textarea[name="description"]')?.value ?? ''
-                    onRefineSeed(`${title} ${description}`.trim())
-                  }}
-                >
-                  和园丁聊聊
-                </button>
-              )}
-              <button type="button" className="ghost-button" onClick={() => setIsModalOpen(false)}>
-                取消
-              </button>
-            </div>
+            {ideaEntryMode === 'write' ? (
+              <>
+                <section className="idea-write-panel" aria-label="Write an idea">
+                  <div className="idea-write-heading">
+                    <span aria-hidden="true">✎</span>
+                    <div><strong>Write an Idea</strong><small>不需要完整，先写下它现在的样子。</small></div>
+                  </div>
+                  <input name="title" placeholder="想法名称" autoFocus />
+                  <textarea name="description" placeholder="写下这颗想法的故事" />
+                  <select value={selectedZoneId} onChange={(event) => setSelectedZoneId(event.target.value as ZoneKey)}>
+                    {zones.map((zone) => (
+                      <option key={zone.id} value={zone.id}>
+                        {zone.defaultName} / {zone.subtitle}
+                      </option>
+                    ))}
+                  </select>
+                  <PlantPicker
+                    category={selectedCategory}
+                    selectedVariant={selectedVariant}
+                    onCategoryChange={(category) => {
+                      setSelectedCategory(category)
+                      setSelectedVariant(category === 'all' ? getRandomPlantVariant('uncategorized') : getRandomPlantVariant(category))
+                    }}
+                    onSelectVariant={setSelectedVariant}
+                  />
+                </section>
+                <div className="action-row">
+                  <button type="submit">种下想法</button>
+                  <button type="button" className="ghost-button" onClick={() => setIsModalOpen(false)}>取消</button>
+                </div>
+              </>
+            ) : (
+              <FragmentIdeaPrototype onPlant={(draft) => {
+                onAddProject(draft.zoneId, draft.title, draft.description, draft.plantCategory, draft.plantVariant)
+                setIsModalOpen(false)
+              }} />
+            )}
           </form>
         </div>
       )}

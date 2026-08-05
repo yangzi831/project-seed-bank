@@ -1,6 +1,9 @@
 import { useMemo, useRef, useState } from 'react'
 import { CanvasStage } from '../components/CanvasStage'
 import { DraggablePlant } from '../components/DraggablePlant'
+import { FragmentIdeaPrototype } from '../components/FragmentIdeaPrototype'
+import { IdeaEntryModes } from '../components/IdeaEntryModes'
+import type { IdeaEntryMode } from '../components/IdeaEntryModes'
 import { PlantPicker } from '../components/PlantPicker'
 import { getRandomPlantVariant, getZoneCounts, plantCategoryMeta, statusMeta } from '../data/garden'
 import type { OutcomeType, PlantCategory, ProjectSeed, Zone, ZoneKey } from '../data/garden'
@@ -35,6 +38,7 @@ export function ZoneView({
   onRefineSeed,
 }: ZoneViewProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [ideaEntryMode, setIdeaEntryMode] = useState<IdeaEntryMode>('write')
   const [selectedZoneId, setSelectedZoneId] = useState<ZoneKey>(zone.id)
   const [selectedCategory, setSelectedCategory] = useState<PlantCategory | 'all'>('all')
   const [selectedVariant, setSelectedVariant] = useState<string | undefined>(() => getRandomPlantVariant('uncategorized'))
@@ -64,11 +68,11 @@ export function ZoneView({
           <section className="glass-panel sidebar-section">
             <p className="eyebrow">Zone statistics</p>
             <div className="sidebar-stats">
-              <Stat label="Total" value={counts.total} />
-              <Stat label="生长中" value={counts.growing} />
-              <Stat label="长成" value={counts.mature} />
-              <Stat label="休眠" value={counts.dormant} />
-              <Stat label="已收获" value={counts.harvested} />
+              <Stat label="想法" value={counts.total} />
+              <Stat label="成长中" value={counts.growing} />
+              <Stat label="形成中" value={counts.mature} />
+              <Stat label="休眠中" value={counts.dormant} />
+              <Stat label="已形成" value={counts.harvested} />
             </div>
           </section>
 
@@ -84,7 +88,7 @@ export function ZoneView({
                   <span className={`status-pill ${statusMeta[project.status].tone}`}>{statusMeta[project.status].label}</span>
                 </button>
               )) : (
-                <p>这里还没有项目。</p>
+                <p>这里还没有想法。</p>
               )}
             </div>
           </section>
@@ -112,17 +116,18 @@ export function ZoneView({
             </div>
             <div className="toolbar-zone-summary">
               <strong>{zone.defaultName}</strong>
-              <small>{zone.subtitle} · {counts.total} projects · 生长中 {counts.growing} · 长成 {counts.mature}</small>
+              <small>{zone.subtitle} · {counts.total} ideas · 成长中 {counts.growing} · 形成中 {counts.mature}</small>
             </div>
             <button
               type="button"
               className="primary-glass-button toolbar-primary"
               onClick={() => {
                 setSelectedZoneId(zone.id)
+                setIdeaEntryMode('write')
                 setIsModalOpen(true)
               }}
             >
-              新增项目
+              种下想法
             </button>
           </div>
           <CanvasStage ref={canvasRef} src={zone.image} className="zone-canvas main-map">
@@ -166,46 +171,59 @@ export function ZoneView({
               setIsModalOpen(false)
             }}
           >
-            <p className="eyebrow">Plant a growing project</p>
-            <h2>新增项目</h2>
-            <input name="title" placeholder="项目名" autoFocus />
-            <textarea name="description" placeholder="一句话描述" />
-            <select value={selectedZoneId} onChange={(event) => setSelectedZoneId(event.target.value as ZoneKey)}>
-              {zones.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.defaultName} / {item.subtitle}
-                </option>
-              ))}
-            </select>
-            <PlantPicker
-              category={selectedCategory}
-              selectedVariant={selectedVariant}
-              onCategoryChange={(category) => {
-                setSelectedCategory(category)
-                setSelectedVariant(category === 'all' ? getRandomPlantVariant('uncategorized') : getRandomPlantVariant(category))
-              }}
-              onSelectVariant={setSelectedVariant}
+            <header className="seed-modal-header">
+              <div><p className="eyebrow">Plant an Idea</p><h2>种下一颗想法</h2></div>
+              <button className="dossier-close" type="button" onClick={() => setIsModalOpen(false)}>Close</button>
+            </header>
+            <p className="idea-entry-lead">选择一种方式，把此刻的想法带进 Bloom。</p>
+            <IdeaEntryModes
+              activeMode={ideaEntryMode}
+              onWrite={() => setIdeaEntryMode('write')}
+              onDropFragment={() => setIdeaEntryMode('fragment')}
+              onTalkWithKeeper={onRefineSeed ? () => {
+                const form = document.querySelector('.seed-modal') as HTMLFormElement | null
+                const title = form?.querySelector<HTMLInputElement>('input[name="title"]')?.value ?? ''
+                const description = form?.querySelector<HTMLTextAreaElement>('textarea[name="description"]')?.value ?? ''
+                onRefineSeed(`${title} ${description}`.trim())
+              } : undefined}
             />
-            <div className="action-row">
-              <button type="submit">种下项目</button>
-              {onRefineSeed && (
-                <button
-                  type="button"
-                  className="ghost-button"
-                  onClick={() => {
-                    const form = document.querySelector('.seed-modal') as HTMLFormElement | null
-                    const title = form?.querySelector<HTMLInputElement>('input[name="title"]')?.value ?? ''
-                    const description = form?.querySelector<HTMLTextAreaElement>('textarea[name="description"]')?.value ?? ''
-                    onRefineSeed(`${title} ${description}`.trim())
-                  }}
-                >
-                  和园丁聊聊
-                </button>
-              )}
-              <button type="button" className="ghost-button" onClick={() => setIsModalOpen(false)}>
-                取消
-              </button>
-            </div>
+            {ideaEntryMode === 'write' ? (
+              <>
+                <section className="idea-write-panel" aria-label="Write an idea">
+                  <div className="idea-write-heading">
+                    <span aria-hidden="true">✎</span>
+                    <div><strong>Write an Idea</strong><small>不需要完整，先写下它现在的样子。</small></div>
+                  </div>
+                  <input name="title" placeholder="想法名称" autoFocus />
+                  <textarea name="description" placeholder="写下这颗想法的故事" />
+                  <select value={selectedZoneId} onChange={(event) => setSelectedZoneId(event.target.value as ZoneKey)}>
+                    {zones.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.defaultName} / {item.subtitle}
+                      </option>
+                    ))}
+                  </select>
+                  <PlantPicker
+                    category={selectedCategory}
+                    selectedVariant={selectedVariant}
+                    onCategoryChange={(category) => {
+                      setSelectedCategory(category)
+                      setSelectedVariant(category === 'all' ? getRandomPlantVariant('uncategorized') : getRandomPlantVariant(category))
+                    }}
+                    onSelectVariant={setSelectedVariant}
+                  />
+                </section>
+                <div className="action-row">
+                  <button type="submit">种下想法</button>
+                  <button type="button" className="ghost-button" onClick={() => setIsModalOpen(false)}>取消</button>
+                </div>
+              </>
+            ) : (
+              <FragmentIdeaPrototype onPlant={(draft) => {
+                onAddProject(draft.zoneId, draft.title, draft.description, draft.plantCategory, draft.plantVariant)
+                setIsModalOpen(false)
+              }} />
+            )}
           </form>
         </div>
       )}

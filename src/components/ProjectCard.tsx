@@ -49,7 +49,7 @@ export function ProjectCard({ project, compact = false, board = false, zoneName,
           </button>
           <span className={`status-pill ${statusMeta[project.status].tone}`}>{statusMeta[project.status].label}</span>
         </div>
-        <p>{project.description || '一颗还没写下说明的项目种子。'}</p>
+        <p>{project.description || '一颗还没写下故事的想法。'}</p>
         <div className="seed-meta-row">
           {zoneName && <span>{zoneName}</span>}
           <span>{plantCategoryMeta[project.plantCategory].label}</span>
@@ -74,7 +74,7 @@ export function ProjectCard({ project, compact = false, board = false, zoneName,
                 form.reset()
               }}
             >
-              <input name="log" placeholder="添加一条生长日志" />
+              <input name="log" placeholder="添加一条成长记录" />
               <button type="submit">记录</button>
             </form>
           </>

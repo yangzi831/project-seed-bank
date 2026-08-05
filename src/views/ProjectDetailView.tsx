@@ -20,6 +20,7 @@ type ProjectDetailViewProps = {
   onAdvance: (project: ProjectSeed) => void
   onDeleteProject: (projectId: string) => void
   onAskGardener?: (projectId: string) => void
+  onOpenUniverse?: (projectId: string) => void
   initialTab?: 'overview' | 'keeper'
   initialAgentScenario?: AgentScenario
 }
@@ -34,6 +35,7 @@ export function ProjectDetailView({
   onAdvance,
   onDeleteProject,
   onAskGardener,
+  onOpenUniverse,
   initialTab = 'overview',
   initialAgentScenario = 'growth-companion',
 }: ProjectDetailViewProps) {
@@ -50,10 +52,11 @@ export function ProjectDetailView({
       <main className="project-dossier glass-panel" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
         <header className="dossier-header">
           <div>
-            <p className="eyebrow">Growth dossier / {zone?.displayName ?? 'Unknown garden'}</p>
-            <h2>项目生长档案</h2>
+            <p className="eyebrow">{zone?.displayName ?? 'Unknown garden'} / Idea Garden</p>
+            <h2>Plant Detail</h2>
+            <p className="dossier-subtitle">这是一颗正在成长的想法。</p>
           </div>
-          <button className="dossier-close" type="button" onClick={onBack} aria-label="Close project detail">
+          <button className="dossier-close" type="button" onClick={onBack} aria-label="Close idea detail">
             Close
           </button>
         </header>
@@ -65,13 +68,17 @@ export function ProjectDetailView({
               className="title-input"
               value={project.title}
               onChange={(event) => onUpdateProject(project.id, { title: event.target.value })}
-              aria-label="Project title"
+              aria-label="Idea title"
             />
-            <textarea
-              value={project.description}
-              onChange={(event) => onUpdateProject(project.id, { description: event.target.value })}
-              aria-label="Project description"
-            />
+            <label className="idea-story-field">
+              <span className="eyebrow">Idea Story</span>
+              <textarea
+                value={project.description}
+                onChange={(event) => onUpdateProject(project.id, { description: event.target.value })}
+                aria-label="Idea story"
+                placeholder="写下这颗想法从哪里来，以及它正在寻找什么。"
+              />
+            </label>
             <div className="detail-meta">
               <span className={`status-pill ${statusMeta[project.status].tone}`}>{statusMeta[project.status].label}</span>
               <span>{plantCategoryMeta[project.plantCategory].label}</span>
@@ -85,14 +92,19 @@ export function ProjectDetailView({
           <button className="keeper-entry-button" type="button" onClick={() => setActiveTab('keeper')}>
             ✦ AI Garden Keeper
           </button>
+          {project.plantVariant === 'plant-01' && onOpenUniverse && (
+            <button className="universe-entry-button" type="button" onClick={() => onOpenUniverse(project.id)}>
+              <span>进入植物宇宙</span><small>Enter Idea Universe</small>
+            </button>
+          )}
           <button type="button" onClick={() => {
             setActiveTab('logs')
             setIsLogOpen(true)
           }}>
-            记录进展
+            写成长记录
           </button>
           <button type="button" onClick={() => onAdvance(project)}>
-            推进状态
+            进入下一生长阶段
           </button>
           <button type="button" onClick={() => {
             setActiveTab('settings')
@@ -108,21 +120,21 @@ export function ProjectDetailView({
             </button>
           ) : (
             <button type="button" onClick={() => onUpdateProject(project.id, { status: 'dormant', previousStatus: getRestorableStatus(project.status) })}>
-              休眠
+              让它休眠
             </button>
           )}
           <button type="button" onClick={() => onUpdateProject(project.id, { status: 'harvested' })}>
-            收获
+            标记为已形成
           </button>
           <button type="button" onClick={() => {
             setActiveTab('outcomes')
             setIsOutcomeOpen(true)
           }}>
-            添加成果
+            记录成果
           </button>
         </section>
 
-        <nav className="dossier-tabs" aria-label="Project dossier sections">
+        <nav className="dossier-tabs" aria-label="Plant detail sections">
           <button className={activeTab === 'overview' ? 'active' : ''} type="button" onClick={() => setActiveTab('overview')}>
             概览
           </button>
@@ -133,10 +145,10 @@ export function ProjectDetailView({
             园丁
           </button>
           <button className={activeTab === 'logs' ? 'active' : ''} type="button" onClick={() => setActiveTab('logs')}>
-            生长日志 · {project.logs.length}
+            Growth Journal · {project.logs.length}
           </button>
           <button className={activeTab === 'outcomes' ? 'active' : ''} type="button" onClick={() => setActiveTab('outcomes')}>
-            成果 · {project.outcomes.length}
+            Things This Idea Has Grown · {project.outcomes.length}
           </button>
           <button className={activeTab === 'settings' ? 'active' : ''} type="button" onClick={() => setActiveTab('settings')}>
             设置
@@ -148,7 +160,7 @@ export function ProjectDetailView({
           {activeTab === 'overview' && (
             <div className="dossier-grid compact-dossier-grid">
               <div className="glass-panel">
-                <p className="eyebrow">Current state</p>
+                <p className="eyebrow">Growth Stage</p>
                 <select value={project.status} onChange={(event) => onUpdateProject(project.id, { status: event.target.value as ProjectSeed['status'] })}>
                   {statusOrder.map((status) => (
                     <option key={status} value={status}>
@@ -159,24 +171,24 @@ export function ProjectDetailView({
                 <p className="plant-variant-note">{project.plantVariant ?? '未分配真实植物，使用粒子占位'}</p>
               </div>
               <div className="glass-panel">
-                <p className="eyebrow">Latest log</p>
-                <p>{project.logs[0]?.text ?? '还没有生长日志。'}</p>
+                <p className="eyebrow">Growth Journal</p>
+                <p>{project.logs[0]?.text ?? '还没有成长记录。'}</p>
               </div>
               <div className="glass-panel">
-                <p className="eyebrow">Latest outcome</p>
+                <p className="eyebrow">Things This Idea Has Grown</p>
                 <p>{project.outcomes[0]?.title ?? '还没有成果记录。'}</p>
               </div>
               {plant && (
                 <div className="glass-panel plant-detail-compare">
-                  <p className="eyebrow">Plant states</p>
+                  <p className="eyebrow">Living Forms</p>
                   <div>
                     <figure>
                       <img src={publicPath(plant.mature)} alt={`${plant.chineseName} mature`} draggable={false} />
-                      <figcaption>长成</figcaption>
+                      <figcaption>形成中</figcaption>
                     </figure>
                     <figure>
                       <img src={publicPath(plant.growing)} alt={`${plant.chineseName} growing`} draggable={false} />
-                      <figcaption>生长中</figcaption>
+                      <figcaption>成长中</figcaption>
                     </figure>
                   </div>
                 </div>
@@ -198,7 +210,7 @@ export function ProjectDetailView({
                   }}
                 >
                   <textarea name="log" placeholder="写下一条新的生长记录" autoFocus />
-                  <button type="submit">保存日志</button>
+                  <button type="submit">保存成长记录</button>
                 </form>
               )}
               <div className="timeline">
@@ -210,7 +222,7 @@ export function ProjectDetailView({
                     </article>
                   ))
                 ) : (
-                  <p>还没有生长日志。</p>
+                  <p>还没有成长记录。</p>
                 )}
               </div>
             </div>
@@ -235,15 +247,15 @@ export function ProjectDetailView({
                     setIsOutcomeOpen(false)
                   }}
                 >
-                  <input name="title" placeholder="成果标题" autoFocus />
+                  <input name="title" placeholder="成果记录标题" autoFocus />
                   <select name="type" defaultValue="link">
                     <option value="link">外部链接</option>
-                    <option value="text">文字成果</option>
+                    <option value="text">文字作品</option>
                     <option value="image">图片链接</option>
                     <option value="file">文件名/路径占位</option>
                   </select>
                   <input name="value" placeholder="链接、文字、图片 URL 或文件路径" />
-                  <button type="submit">保存成果</button>
+                  <button type="submit">保存成果记录</button>
                 </form>
               )}
               <div className="outcome-list">
@@ -273,7 +285,7 @@ export function ProjectDetailView({
           {activeTab === 'settings' && (
             <div className="dossier-scroll-section">
               <div className="glass-panel settings-panel">
-                <p className="eyebrow">Project settings</p>
+                <p className="eyebrow">Plant settings</p>
                 <button type="button" onClick={() => {
                   setIsPlantChooserOpen((value) => !value)
                   setPlantCategory(project.plantCategory)
@@ -310,9 +322,9 @@ export function ProjectDetailView({
                     </div>
                   </div>
                 )}
-                <p>删除项目会同时移除状态、日志、成果和画布坐标。</p>
+                <p>删除这颗想法会同时移除生长阶段、成长记录、成果记录和画布坐标。</p>
                 <button className="danger-button" type="button" onClick={() => onDeleteProject(project.id)}>
-                  删除项目
+                  删除这颗想法
                 </button>
               </div>
             </div>

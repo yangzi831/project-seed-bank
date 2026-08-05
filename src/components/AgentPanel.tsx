@@ -10,9 +10,9 @@ type AgentPanelProps = {
 }
 
 const scenarios: Array<{ id: AgentScenario; name: string; description: string; prompt: string }> = [
-  { id: 'seed-discovery', name: 'Seed Discovery', description: '把模糊想法整理成可以开始的种子', prompt: '帮我理清这颗项目种子，找到一个最小的开始。' },
-  { id: 'growth-companion', name: 'Growth Companion', description: '阅读日志，发现变化与下一步', prompt: '读一读这个项目最近的成长，并建议下一步。' },
-  { id: 'harvest-assistant', name: 'Harvest Assistant', description: '整理项目故事与作品集描述', prompt: '帮我把这个项目整理成一段作品集介绍。' },
+  { id: 'seed-discovery', name: 'Seed Discovery', description: '帮助发现和整理新的想法', prompt: '帮我理清这颗想法，找到一个最小的开始。' },
+  { id: 'growth-companion', name: 'Growth Companion', description: '陪伴想法成长，观察植物的生长阶段', prompt: '读一读这颗想法最近的成长，并建议下一步。' },
+  { id: 'harvest-assistant', name: 'Creation Companion', description: '陪想法逐渐形成清晰的作品表达', prompt: '帮我整理这颗想法已经形成的内容。' },
 ]
 
 export function AgentPanel({ project, initialScenario = 'growth-companion' }: AgentPanelProps) {
@@ -60,8 +60,8 @@ export function AgentPanel({ project, initialScenario = 'growth-companion' }: Ag
         <div className="keeper-orb" aria-hidden="true"><span>✦</span></div>
         <div>
           <p className="eyebrow">AI Garden Keeper · local preview</p>
-          <h3>花园守护者</h3>
-          <p>我会读一读这颗植物留下的生长痕迹，陪你辨认方向。决定始终由你来做。</p>
+          <h3>你的 AI 园丁</h3>
+          <p>陪伴想法成长，读一读植物留下的生长痕迹。决定始终由你来做。</p>
         </div>
         <span className="agent-presence"><i /> 正在花园里</span>
       </header>
@@ -84,7 +84,7 @@ export function AgentPanel({ project, initialScenario = 'growth-companion' }: Ag
 
       <div className="agent-context-note">
         <span>正在感知</span>
-        <p>{project.title} · {project.logs.length} 条日志 · {project.outcomes.length} 项成果 · 更新于 {new Date(project.updatedAt).toLocaleDateString('zh-CN')}</p>
+        <p>{project.title} · {project.logs.length} 条成长记录 · {project.outcomes.length} 项成果记录 · 更新于 {new Date(project.updatedAt).toLocaleDateString('zh-CN')}</p>
       </div>
 
       <form className="agent-input" onSubmit={(event) => { event.preventDefault(); void askKeeper() }}>

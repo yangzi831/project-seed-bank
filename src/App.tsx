@@ -28,6 +28,7 @@ import { syncGardenSnapshot } from './services/supabase/gardens'
 import { getUnreadCommentCount } from './services/supabase/comments'
 import { HomeView } from './views/HomeView'
 import { GardenProfileView } from './views/GardenProfileView'
+import { IdeaUniverseView } from './views/IdeaUniverseView'
 import { ListView } from './views/ListView'
 import { PlantLibraryView } from './views/PlantLibraryView'
 import { ProjectDetailView } from './views/ProjectDetailView'
@@ -39,6 +40,7 @@ type Route =
   | { name: 'board' }
   | { name: 'zone'; zoneId: ZoneKey }
   | { name: 'plantLibrary' }
+  | { name: 'universe'; ideaId: string }
   | { name: 'profile'; handle: string }
 
 export function App() {
@@ -137,6 +139,11 @@ export function App() {
     return state.projects.find((project) => project.id === selectedProjectId)
   }, [selectedProjectId, state.projects])
 
+  const universeProject = useMemo(() => {
+    if (route.name !== 'universe') return undefined
+    return state.projects.find((project) => project.id === route.ideaId)
+  }, [route, state.projects])
+
   const keeperChatContext = useMemo(() => {
     const focusProject =
       currentProject ??
@@ -178,7 +185,7 @@ export function App() {
 
   function deleteProject(projectId: string) {
     const project = state.projects.find((item) => item.id === projectId)
-    const confirmed = window.confirm(`确认删除这个项目吗？${project ? `\n\n${project.title}` : ''}`)
+    const confirmed = window.confirm(`确认删除这颗想法吗？${project ? `\n\n${project.title}` : ''}`)
     if (!confirmed) return
 
     setState((current) => ({
@@ -244,7 +251,7 @@ export function App() {
       message: messages[messages.length - 1]?.content ?? '',
       context: createGardenAgentContext(state),
     })
-    if (!response.suggestion.seedDraft) throw new Error('园丁没有返回可应用的项目种子')
+    if (!response.suggestion.seedDraft) throw new Error('园丁没有返回可种下的想法')
     return response.suggestion.seedDraft
   }
 
@@ -254,7 +261,7 @@ export function App() {
 
     const response = await requestGardenKeeper({
       scenario: 'growth-companion',
-      message: '整理这个项目目前的成长轨迹，并提出下一步。',
+      message: '整理这颗想法目前的成长轨迹，并提出下一步。',
       context: createAgentContext(project),
     })
     updateProject(projectId, {
@@ -306,6 +313,10 @@ export function App() {
     goList: () => navigate({ name: 'list' }),
     goBoard: () => navigate({ name: 'board' }),
     goZone: (zoneId: ZoneKey) => navigate({ name: 'zone', zoneId }),
+    goUniverse: (ideaId: string) => {
+      setSelectedProjectId(null)
+      navigate({ name: 'universe', ideaId })
+    },
     goProject: (projectId: string) => {
       setSelectedProjectTab('overview')
       setSelectedProjectId(projectId)
@@ -386,6 +397,28 @@ export function App() {
         />
       )}
       {route.name === 'plantLibrary' && <PlantLibraryView />}
+      {route.name === 'universe' && universeProject?.plantVariant === 'plant-01' && (
+        <IdeaUniverseView
+          project={universeProject}
+          zone={state.zones.find((zone) => zone.id === universeProject.zoneId)}
+          keeper={selectedKeeper}
+          onBackToGarden={() => nav.goZone(universeProject.zoneId)}
+          onBackToPlant={() => {
+            nav.goZone(universeProject.zoneId)
+            setSelectedProjectId(universeProject.id)
+          }}
+        />
+      )}
+      {route.name === 'universe' && (!universeProject || universeProject.plantVariant !== 'plant-01') && (
+        <main className="page universe-unavailable-page">
+          <section className="glass-panel universe-unavailable">
+            <p className="eyebrow">Idea Universe · Prototype 01</p>
+            <h1>这个宇宙还没有开放</h1>
+            <p>当前原型只为 1 号植物「流光花」开放。其他植物会继续留在花园里生长。</p>
+            <button type="button" onClick={nav.goHome}>返回花园</button>
+          </section>
+        </main>
+      )}
       {route.name === 'profile' && (
         <GardenProfileView
           handle={route.handle}
@@ -422,6 +455,7 @@ export function App() {
           onAdvance={advanceProject}
           onDeleteProject={deleteProject}
           onAskGardener={(projectId) => summarizeProject(projectId)}
+          onOpenUniverse={nav.goUniverse}
           initialTab={selectedProjectTab}
           initialAgentScenario={selectedAgentScenario}
         />
@@ -508,6 +542,11 @@ function parseRoute(pathname: string): Route {
     return { name: 'profile', handle: profileMatch[1] }
   }
 
+  const universeMatch = pathname.match(/^\/ideas\/([^/]+)\/universe$/)
+  if (universeMatch) {
+    return { name: 'universe', ideaId: universeMatch[1] }
+  }
+
   return { name: 'home' }
 }
 
@@ -517,6 +556,7 @@ function routeToPath(route: Route) {
   if (route.name === 'board') return '/board'
   if (route.name === 'plantLibrary') return '/dev/plant-library'
   if (route.name === 'profile') return `/u/${route.handle}`
+  if (route.name === 'universe') return `/ideas/${encodeURIComponent(route.ideaId)}/universe`
   return `/garden/${route.zoneId}`
 }
 
