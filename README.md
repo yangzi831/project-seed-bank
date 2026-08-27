@@ -3,8 +3,11 @@
 ### An AI garden where your ideas grow. / 一座让想法自然生长的 AI 花园。
 
 <p align="center">
-  <img src="docs/images/bloom-poster-overview.png" alt="Bloom product overview poster" width="49%" />
-  <img src="docs/images/bloom-poster-flow.png" alt="Bloom experience flow poster" width="49%" />
+  <img src="docs/images/bloom-poster-overview.png" alt="Bloom product overview poster" width="100%" />
+</p>
+
+<p align="center">
+  <img src="docs/images/bloom-poster-flow.png" alt="Bloom experience flow poster" width="100%" />
 </p>
 
 **Bloom** is an AI-powered creative garden where ideas become living digital plants. Capture a fragment, grow it with an AI Garden Keeper, and revisit it through immersive garden spaces and connected idea universes.
